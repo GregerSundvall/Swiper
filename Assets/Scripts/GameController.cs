@@ -7,54 +7,71 @@ public class GameController : MonoBehaviour
 {
 	[SerializeField] private Camera gameCamera;
 
+	private bool isHoldingBrick = false;
 	private Brick brickBeingHeld;
-	private Vector3 previousHitPosition;
+	private Vector3 previousHitPoint = Vector3.zero;
 
-	private Vector3 mostRecentClickPoint;
-	private Vector3 clickPointToPositiondelta;
+	private Vector3 previousFingerPosition;
+	private Vector3 clickPointToPositionDelta;
 	
-
-	private void Awake()
-	{
-		
-	}
 
 	private void Update()
 	{
-		if (Input.GetMouseButtonDown(0))
+		if (Input.GetMouseButton(0))
 		{
 			var ray = gameCamera.ScreenPointToRay(Input.mousePosition);
 			RaycastHit hit;
+			
 			if (Physics.Raycast(ray, out hit))
 			{
 				Brick brick = hit.collider.GetComponent<Brick>();
-				if (brick != null)
-				{
-					Debug.Log("Caught a brick");
-					brickBeingHeld = brick;
-					clickPointToPositiondelta = hit.point - brick.transform.position;
-				}
-			}
-		}
+				var hitIsOnTopSide = hit.normal == Vector3.up;
 
-		if (Input.GetMouseButton(0) && brickBeingHeld != null)
-		{
-			var ray = gameCamera.ScreenPointToRay(Input.mousePosition);
-			RaycastHit hit;
-			if (Physics.Raycast(ray, out hit))
-			{
-				Debug.Log("Holding a brick");
-				var targetBrickTF = brickBeingHeld.transform;
-				var newPosition = hit.point - clickPointToPositiondelta;
-				newPosition.y = targetBrickTF.position.y;
-				targetBrickTF.position = newPosition;
+				if (brick != null && hitIsOnTopSide)
+				{
+					var isFirstFrameOfSwipe = previousHitPoint == Vector3.zero;
+					if (!isFirstFrameOfSwipe)
+					{
+						brick.transform.position += GetMovement(hit.point);
+					}
+
+					brickBeingHeld = brick;
+					previousHitPoint = hit.point;
+				}
+				else if (previousHitPoint != Vector3.zero)
+				{
+					// Player "lost grip" of the brick. We'll give it a nudge, so it doesn't stop totally.
+					var movement = GetMovement(hit.point);
+					var brickRB = brickBeingHeld.GetComponent<Rigidbody>();
+					brickRB.AddForce(movement * (600 * Time.deltaTime), ForceMode.Impulse);
+				
+					previousHitPoint = Vector3.zero;
+					brickBeingHeld = null;
+				}
 			}
 		}
 
 		if (Input.GetMouseButtonUp(0))
 		{
-			Debug.Log("Brick released");
+			previousHitPoint = Vector3.zero;
 			brickBeingHeld = null;
+		}
+
+		Vector3 GetMovement(Vector3 hitPoint)
+		{
+			var movement = Vector3.zero;
+			var sceneProjectedSwipe = hitPoint - previousHitPoint;
+            
+			if (Mathf.Abs(sceneProjectedSwipe.x) > Mathf.Abs(sceneProjectedSwipe.z))
+			{
+				movement.x = sceneProjectedSwipe.x;
+			}
+			else
+			{
+				movement.z = sceneProjectedSwipe.z;
+			}
+
+			return movement;
 		}
 	}
 }
