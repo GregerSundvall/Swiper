@@ -43,15 +43,11 @@ public class GameController : MonoBehaviour
 			RaycastHit hit;
 			if (Physics.Raycast(ray, out hit))
 			{
-				Brick brick = hit.collider.GetComponent<Brick>();
-				if (brick == brickBeingHeld)
-				{
-					Debug.Log("Holding a brick");
-					var brickTF = brick.transform;
-					var newPosition = hit.point + clickPointToPositiondelta;
-					newPosition.y = brickTF.position.y;
-					brickTF.position = newPosition;
-				}
+				Debug.Log("Holding a brick");
+				var targetBrickTF = brickBeingHeld.transform;
+				var newPosition = hit.point - clickPointToPositiondelta;
+				newPosition.y = targetBrickTF.position.y;
+				targetBrickTF.position = newPosition;
 			}
 		}
 
