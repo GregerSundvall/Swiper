@@ -39,7 +39,7 @@ public class GameController : MonoBehaviour
 			var line = new List<Vector3>();
 			for (float j = -halfColumn; j < halfColumn; j++)
 			{
-				bool isLastPosition = i + brickSpacing >= halfRow && j + brickSpacing >= halfColumn ;
+				bool isLastPosition = (i + brickSpacing >= halfRow) && (j + brickSpacing >= halfColumn) ;
 				if (isLastPosition)
 				{
 					continue;
