@@ -6,14 +6,52 @@ using UnityEngine;
 public class GameController : MonoBehaviour
 {
 	[SerializeField] private Camera gameCamera;
-
-	private bool isHoldingBrick = false;
-	private Brick brickBeingHeld;
-	private Vector3 previousHitPoint = Vector3.zero;
-
-	private Vector3 previousFingerPosition;
-	private Vector3 clickPointToPositionDelta;
+	[SerializeField] private int boardWidth = 3;
+	[SerializeField] private int boardHeight = 3;
+	[SerializeField] private bool bufferEdges = true;
+	[SerializeField] private Brick brickPrefab;
+	[SerializeField] private float brickSpacing = 1.0f;
 	
+    
+	private List<List<Vector3>> positions = new();
+	private List<Brick> bricks = new();
+
+	private Tuple<int, int> freePosition = new Tuple<int, int>(0, 0);
+	private Brick brickBeingHeld;
+	
+	private Vector3 previousHitPoint = Vector3.zero;
+	private Vector3 previousFingerPosition;
+	private Vector3 clickPointToBrickPositionDelta;
+
+	
+	
+	private void Awake()
+	{
+		var height = boardHeight + (bufferEdges ? 2 : 0);
+		var width = boardWidth + (bufferEdges ? 2 : 0);
+
+		var halfRow = height * 0.5f;
+		var halfColumn = width * 0.5f;
+		var halfBrick = brickSpacing * 0.5f;
+		
+		for (float i = -halfRow; i < halfRow; i++)
+		{
+			var line = new List<Vector3>();
+			for (float j = -halfColumn; j < halfColumn; j++)
+			{
+				bool isLastPosition = i + brickSpacing >= halfRow && j + brickSpacing >= halfColumn ;
+				if (isLastPosition)
+				{
+					continue;
+				}
+				
+				Vector3 position = new Vector3(i + halfBrick, 0, j + halfBrick);
+				line.Add(position);
+				bricks.Add(Instantiate(brickPrefab, position, Quaternion.identity));
+			}
+			positions.Add(line);
+		}
+	}
 
 	private void Update()
 	{
@@ -32,19 +70,26 @@ public class GameController : MonoBehaviour
 					var isFirstFrameOfSwipe = previousHitPoint == Vector3.zero;
 					if (!isFirstFrameOfSwipe)
 					{
-						brick.transform.position += GetMovement(hit.point);
+						var movement = Vector3.zero;
+						var sceneProjectedSwipe = hit.point - previousHitPoint;
+                        
+						if (Mathf.Abs(sceneProjectedSwipe.x) > Mathf.Abs(sceneProjectedSwipe.z))
+						{
+							movement.x = sceneProjectedSwipe.x;
+						}
+						else
+						{
+							movement.z = sceneProjectedSwipe.z;
+						}
+						
+						brick.transform.position += movement;
 					}
 
 					brickBeingHeld = brick;
 					previousHitPoint = hit.point;
 				}
-				else if (previousHitPoint != Vector3.zero)
+				else
 				{
-					// Player "lost grip" of the brick. We'll give it a nudge, so it doesn't stop totally.
-					var movement = GetMovement(hit.point);
-					var brickRB = brickBeingHeld.GetComponent<Rigidbody>();
-					brickRB.AddForce(movement * (600 * Time.deltaTime), ForceMode.Impulse);
-				
 					previousHitPoint = Vector3.zero;
 					brickBeingHeld = null;
 				}
@@ -56,22 +101,7 @@ public class GameController : MonoBehaviour
 			previousHitPoint = Vector3.zero;
 			brickBeingHeld = null;
 		}
-
-		Vector3 GetMovement(Vector3 hitPoint)
-		{
-			var movement = Vector3.zero;
-			var sceneProjectedSwipe = hitPoint - previousHitPoint;
-            
-			if (Mathf.Abs(sceneProjectedSwipe.x) > Mathf.Abs(sceneProjectedSwipe.z))
-			{
-				movement.x = sceneProjectedSwipe.x;
-			}
-			else
-			{
-				movement.z = sceneProjectedSwipe.z;
-			}
-
-			return movement;
-		}
 	}
+
+	
 }

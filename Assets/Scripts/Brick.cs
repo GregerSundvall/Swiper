@@ -4,15 +4,22 @@ using UnityEngine;
 
 public class Brick : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
+	public bool isBeingMovedByPlayer;
+	public Vector3 movement;
+	
+    public void Push()
     {
-        
+	    
     }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+	
+	private void OnCollisionEnter(Collision other)
+	{
+		GameObject otherGO = other.gameObject;
+		Brick otherBrick = otherGO.GetComponent<Brick>();
+		if (otherBrick != null)
+		{
+			otherBrick.Push();
+		}
+		
+	}
 }
