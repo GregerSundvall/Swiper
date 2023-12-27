@@ -2,13 +2,17 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
+using Random = UnityEngine.Random;
 
 public class GameController : MonoBehaviour
 {
 	[SerializeField] private Camera gameCamera;
-	[SerializeField] private int boardWidth = 3;
-	[SerializeField] private int boardHeight = 3;
+	[SerializeField] private int solutionWidth = 3;
+	[SerializeField] private int solutionHeight = 3;
 	[SerializeField] private bool bufferEdges = true;
+	[SerializeField] private List<Color> colors = new();
+    
 	[SerializeField] private Brick brickPrefab;
 	[SerializeField] public float brickSpacing = 1.0f;
 
@@ -16,10 +20,11 @@ public class GameController : MonoBehaviour
 	[SerializeField] private GameObject barrierRight;
 	[SerializeField] private GameObject barrierForward;
 	[SerializeField] private GameObject barrierBack;
-	
+    
 	
     
 	private List<List<Vector3>> positions = new();
+	private List<List<Color>> solution = new();
 	private List<Brick> bricks = new();
 
 	private Vector3 freePosition;
@@ -34,7 +39,7 @@ public class GameController : MonoBehaviour
 	
 	private void Awake()
 	{
-		SetupBoardAndBricks();
+		SetupGame();
 	}
 
 	private void Update()
@@ -114,27 +119,56 @@ public class GameController : MonoBehaviour
 		}
 	}
 
-	private void SetupBoardAndBricks()
+	private void SetupGame()
 	{
-		var height = boardHeight + (bufferEdges ? 2 : 0);
-		var width = boardWidth + (bufferEdges ? 2 : 0);
-
-		var halfRow = height * 0.5f;
-		var halfColumn = width * 0.5f;
+		var brickColors = new List<Color>();
+		
+		// Populate solution
+		for (int i = 0; i < solutionHeight; i++)
+		{
+			var row = new List<Color>();
+			for (int j = 0; j < solutionWidth; j++)
+			{
+				var color = colors[Random.Range(0, colors.Count)];
+				row.Add(color);
+				brickColors.Add(color);
+			}
+			solution.Add(row);
+		}
+		
+		// Set solution UI colors
+		FindObjectOfType<GameUI>().ShowSolution(brickColors);
+        
+		// Nice to have variables
+		var boardHeight = solutionHeight + (bufferEdges ? 2 : 0);
+		var boardWidth = solutionWidth + (bufferEdges ? 2 : 0);
+		var halfHeight = boardHeight * 0.5f;
+		var halfWidth = boardWidth * 0.5f;
 		var halfBrick = brickSpacing * 0.5f;
+		
+		// Top up brickcolors list with additional random color instances.
+		while (brickColors.Count < boardHeight * boardWidth -1) // -1 because of the free slot
+		{
+			brickColors.Add(colors[Random.Range(0, colors.Count)]);
+		}
 
-		for (float i = -halfRow; i < halfRow; i++)
+		// Spawn bricks. Color is randomized from brickColors list.
+		for (float i = -halfHeight; i < halfHeight; i++)
 		{
 			var line = new List<Vector3>();
-			for (float j = -halfColumn; j < halfColumn; j++)
+			for (float j = -halfWidth; j < halfWidth; j++)
 			{
 				Vector3 position = new Vector3(i + halfBrick, 0, j + halfBrick);
 				line.Add(position);
 
-				bool isLastPosition = (i + brickSpacing >= halfRow) && (j + brickSpacing >= halfColumn);
+				bool isLastPosition = (i + brickSpacing >= halfHeight) && (j + brickSpacing >= halfWidth);
 				if (!isLastPosition)
 				{
 					var brick = Instantiate(brickPrefab, position, Quaternion.identity);
+					var colorIndex = Random.Range(0, brickColors.Count);
+					var color = brickColors[colorIndex];
+					brick.GetComponentInChildren<MeshRenderer>().material.color = color;
+					brickColors.RemoveAt(colorIndex);
 					bricks.Add(brick);
 				}
 				else
@@ -145,11 +179,11 @@ public class GameController : MonoBehaviour
 
 			positions.Add(line);
 		}
-
-		barrierLeft.transform.position = new Vector3(-halfColumn - halfBrick, 0, 0);
-		barrierRight.transform.position = new Vector3(halfColumn + halfBrick, 0, 0);
-		barrierBack.transform.position = new Vector3(0, 0, -halfRow - halfBrick);
-		barrierForward.transform.position = new Vector3(0, 0, halfRow + halfBrick);
 		
+		// Place barriers
+		barrierLeft.transform.position = new Vector3(-halfWidth - halfBrick, 0, 0);
+		barrierRight.transform.position = new Vector3(halfWidth + halfBrick, 0, 0);
+		barrierBack.transform.position = new Vector3(0, 0, -halfHeight - halfBrick);
+		barrierForward.transform.position = new Vector3(0, 0, halfHeight + halfBrick);
 	}
 }
