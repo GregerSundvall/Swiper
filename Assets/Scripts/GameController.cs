@@ -10,14 +10,21 @@ public class GameController : MonoBehaviour
 	[SerializeField] private int boardHeight = 3;
 	[SerializeField] private bool bufferEdges = true;
 	[SerializeField] private Brick brickPrefab;
-	[SerializeField] private float brickSpacing = 1.0f;
+	[SerializeField] public float brickSpacing = 1.0f;
+
+	[SerializeField] private GameObject barrierLeft;
+	[SerializeField] private GameObject barrierRight;
+	[SerializeField] private GameObject barrierForward;
+	[SerializeField] private GameObject barrierBack;
+	
 	
     
 	private List<List<Vector3>> positions = new();
 	private List<Brick> bricks = new();
 
-	private Tuple<int, int> freePosition = new Tuple<int, int>(0, 0);
-	private Brick brickBeingHeld;
+	private Vector3 freePosition;
+	private Brick currentlyHeldBrick;
+	private Brick previouslyHeldBrick;
 	
 	private Vector3 previousHitPoint = Vector3.zero;
 	private Vector3 previousFingerPosition;
@@ -27,7 +34,7 @@ public class GameController : MonoBehaviour
 	
 	private void Awake()
 	{
-		CreateBoardAndSpawnBricks();
+		SetupBoardAndBricks();
 	}
 
 	private void Update()
@@ -59,16 +66,21 @@ public class GameController : MonoBehaviour
 							movement.z = sceneProjectedSwipe.z;
 						}
 						
-						brick.transform.position += movement;
+						brick.RegisterPlayerMovementInput(movement);
 					}
 
-					brickBeingHeld = brick;
+					if (currentlyHeldBrick != brick)
+					{
+						previouslyHeldBrick = currentlyHeldBrick;
+					}
+					currentlyHeldBrick = brick;
 					previousHitPoint = hit.point;
 				}
 				else
 				{
 					previousHitPoint = Vector3.zero;
-					brickBeingHeld = null;
+					previouslyHeldBrick = currentlyHeldBrick;
+					currentlyHeldBrick = null;
 				}
 			}
 		}
@@ -76,11 +88,33 @@ public class GameController : MonoBehaviour
 		if (Input.GetMouseButtonUp(0))
 		{
 			previousHitPoint = Vector3.zero;
-			brickBeingHeld = null;
+			previouslyHeldBrick = currentlyHeldBrick;
+			currentlyHeldBrick = null;
+		}
+
+		if (previouslyHeldBrick != null)
+		{
+			Vector3 closestPosition = new();
+			float smallestDelta = Single.PositiveInfinity;
+			foreach (var row in positions)
+			{
+				foreach (var position in row)
+				{
+					var delta = Mathf.Abs((previouslyHeldBrick.transform.position - position).magnitude);
+					if (delta < smallestDelta)
+					{
+						smallestDelta = delta;
+						closestPosition = position;
+					}
+				}
+			}
+
+			previouslyHeldBrick.transform.position = closestPosition;
+			previouslyHeldBrick = null;
 		}
 	}
 
-	private void CreateBoardAndSpawnBricks()
+	private void SetupBoardAndBricks()
 	{
 		var height = boardHeight + (bufferEdges ? 2 : 0);
 		var width = boardWidth + (bufferEdges ? 2 : 0);
@@ -100,11 +134,22 @@ public class GameController : MonoBehaviour
 				bool isLastPosition = (i + brickSpacing >= halfRow) && (j + brickSpacing >= halfColumn);
 				if (!isLastPosition)
 				{
-					bricks.Add(Instantiate(brickPrefab, position, Quaternion.identity));
+					var brick = Instantiate(brickPrefab, position, Quaternion.identity);
+					bricks.Add(brick);
+				}
+				else
+				{
+					freePosition = position;
 				}
 			}
 
 			positions.Add(line);
 		}
+
+		barrierLeft.transform.position = new Vector3(-halfColumn - halfBrick, 0, 0);
+		barrierRight.transform.position = new Vector3(halfColumn + halfBrick, 0, 0);
+		barrierBack.transform.position = new Vector3(0, 0, -halfRow - halfBrick);
+		barrierForward.transform.position = new Vector3(0, 0, halfRow + halfBrick);
+		
 	}
 }

@@ -1,25 +1,27 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class Brick : MonoBehaviour
 {
-	public bool isBeingMovedByPlayer;
-	public Vector3 movement;
-	
-    public void Push()
-    {
-	    
-    }
-	
-	private void OnCollisionEnter(Collision other)
+	private GameController gameController;
+	public bool isHeldByPlayer;
+
+	private void Awake()
 	{
-		GameObject otherGO = other.gameObject;
-		Brick otherBrick = otherGO.GetComponent<Brick>();
-		if (otherBrick != null)
-		{
-			otherBrick.Push();
-		}
-		
+		gameController = FindObjectOfType<GameController>();
 	}
+
+
+	public void RegisterPlayerMovementInput(Vector3 movement)
+	{
+		RaycastHit hit;
+		if (!Physics.Raycast(transform.position, movement, out hit, transform.localScale.x / 2))
+		{
+			transform.position += movement;
+		}
+	}
+	
+    
 }
