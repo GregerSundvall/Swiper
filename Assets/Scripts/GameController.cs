@@ -27,30 +27,7 @@ public class GameController : MonoBehaviour
 	
 	private void Awake()
 	{
-		var height = boardHeight + (bufferEdges ? 2 : 0);
-		var width = boardWidth + (bufferEdges ? 2 : 0);
-
-		var halfRow = height * 0.5f;
-		var halfColumn = width * 0.5f;
-		var halfBrick = brickSpacing * 0.5f;
-		
-		for (float i = -halfRow; i < halfRow; i++)
-		{
-			var line = new List<Vector3>();
-			for (float j = -halfColumn; j < halfColumn; j++)
-			{
-				bool isLastPosition = (i + brickSpacing >= halfRow) && (j + brickSpacing >= halfColumn) ;
-				if (isLastPosition)
-				{
-					continue;
-				}
-				
-				Vector3 position = new Vector3(i + halfBrick, 0, j + halfBrick);
-				line.Add(position);
-				bricks.Add(Instantiate(brickPrefab, position, Quaternion.identity));
-			}
-			positions.Add(line);
-		}
+		CreateBoardAndSpawnBricks();
 	}
 
 	private void Update()
@@ -103,5 +80,31 @@ public class GameController : MonoBehaviour
 		}
 	}
 
-	
+	private void CreateBoardAndSpawnBricks()
+	{
+		var height = boardHeight + (bufferEdges ? 2 : 0);
+		var width = boardWidth + (bufferEdges ? 2 : 0);
+
+		var halfRow = height * 0.5f;
+		var halfColumn = width * 0.5f;
+		var halfBrick = brickSpacing * 0.5f;
+
+		for (float i = -halfRow; i < halfRow; i++)
+		{
+			var line = new List<Vector3>();
+			for (float j = -halfColumn; j < halfColumn; j++)
+			{
+				Vector3 position = new Vector3(i + halfBrick, 0, j + halfBrick);
+				line.Add(position);
+
+				bool isLastPosition = (i + brickSpacing >= halfRow) && (j + brickSpacing >= halfColumn);
+				if (!isLastPosition)
+				{
+					bricks.Add(Instantiate(brickPrefab, position, Quaternion.identity));
+				}
+			}
+
+			positions.Add(line);
+		}
+	}
 }
