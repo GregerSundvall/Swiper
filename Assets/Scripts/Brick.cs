@@ -6,7 +6,7 @@ using UnityEngine;
 public class Brick : MonoBehaviour
 {
 	private GameController gameController;
-	public bool isHeldByPlayer;
+	public Color color;
 
 	private void Awake()
 	{
