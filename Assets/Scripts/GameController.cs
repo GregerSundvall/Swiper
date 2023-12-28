@@ -28,13 +28,15 @@ public class GameController : MonoBehaviour
 	private List<Brick> bricks = new();
 
 	private Brick currentlyHeldBrick;
-	private Brick previouslyHeldBrick;
+	// private Brick previouslyHeldBrick;
+	private List<Brick> previouslyHeldBricks = new();
 	
 	private Vector3 previousHitPoint = Vector3.zero;
 	private Vector3 previousFingerPosition;
 	private Vector3 clickPointToBrickPositionDelta;
 
 	private float brickColliderExtentY;
+	public float movementPerFrameLimit = 0.1f;
 	
 	
 	private void Awake()
@@ -59,92 +61,53 @@ public class GameController : MonoBehaviour
 					var isFirstFrameOfSwipe = previousHitPoint == Vector3.zero;
 					if (!isFirstFrameOfSwipe)
 					{
-						var movement = Vector3.zero;
 						var sceneProjectedSwipe = hit.point - previousHitPoint;
+						var movement = Vector3.zero;
                         
 						if (Mathf.Abs(sceneProjectedSwipe.x) > Mathf.Abs(sceneProjectedSwipe.z))
 						{
-							movement.x = sceneProjectedSwipe.x;
+							movement.x = Mathf.Min(sceneProjectedSwipe.x, movementPerFrameLimit);
 						}
 						else
 						{
-							movement.z = sceneProjectedSwipe.z;
+							movement.z = Mathf.Min(sceneProjectedSwipe.z, movementPerFrameLimit);
 						}
 						
-						brick.RegisterPlayerMovementInput(movement);
+						brick.TryToMove(movement);
+						
+						// Player has swiped far/fast enough to now be on a different brick than last frame.
+						if (currentlyHeldBrick != brick)
+						{
+							currentlyHeldBrick.SnapToNearestPosition();
+						}
 					}
-
-					// Player has swiped fast or far enough to now be on a different brick than last frame.
-					if (currentlyHeldBrick != brick)
-					{
-						previouslyHeldBrick = currentlyHeldBrick;
-					}
+                    
 					currentlyHeldBrick = brick;
 					previousHitPoint = hit.point;
 				}
-				else
+				else // Not a valid brick hit.
 				{
+					foreach (var b in bricks)
+					{
+						b.SnapToNearestPosition();
+					}
 					previousHitPoint = Vector3.zero;
-					previouslyHeldBrick = currentlyHeldBrick;
 					currentlyHeldBrick = null;
 				}
 			}
 		}
-		else 
+		else // No player input
 		{
 			if (currentlyHeldBrick != null)
 			{
-				previouslyHeldBrick = currentlyHeldBrick;
-				currentlyHeldBrick = null;
-				previousHitPoint = Vector3.zero;
-			
-				// Check for win condition
-				var win = true;
-				int bufferEdge = bufferEdges ? 1 : 0;
-				float maxRayDistance = brickColliderExtentY;
-				var rayOriginOffset = new Vector3(0, maxRayDistance * 1.1f, 0);
-				var rayDirection = Vector3.down;
-				
-				for (int i = 0; i < solution.Count; i++)
+				foreach (var b in bricks)
 				{
-					for (int j = 0; j < solution[i].Count; j++)
-					{
-						RaycastHit hit;
-						var brickPosition = positions[i + bufferEdge][j + bufferEdge];
-						var rayOrigin = brickPosition + rayOriginOffset;
-						
-						if (Physics.Raycast(rayOrigin, rayDirection, out hit, maxRayDistance))
-						{
-							Brick brick = hit.collider.GetComponent<Brick>();
-							var isValidHit = brick != null;
-							if (isValidHit)
-							{
-								var brickColor = brick.color;
-								var solutionColor = solution[i][j];
-								if (brickColor != solutionColor)
-								{
-									win = false;
-									break;
-								}
-							}
-							else
-							{
-								win = false;
-								break;
-							}
-						}
-						else
-						{
-							win = false;
-							break;
-						}
-					}
-					
-					if (!win)
-					{
-						break;
-					}
+                    b.SnapToNearestPosition();
 				}
+
+				previousHitPoint = Vector3.zero;
+
+				var win = CheckWinCondition();
 				
 				if (win)
 				{
@@ -152,28 +115,78 @@ public class GameController : MonoBehaviour
 				}
 			}
 		}
-
-		// Snap previously moved piece into position
-		if (previouslyHeldBrick != null)
+	}
+	
+	private bool CheckWinCondition()
+	{
+		var win = true;
+		int bufferEdge = bufferEdges ? 1 : 0;
+		float maxRayDistance = brickColliderExtentY;
+		var rayOriginOffset = new Vector3(0, maxRayDistance * 1.1f, 0);
+		var rayDirection = Vector3.down;
+				
+		for (int i = 0; i < solution.Count; i++)
 		{
-			Vector3 closestPosition = new();
-			float smallestDelta = Single.PositiveInfinity;
-			foreach (var row in positions)
+			for (int j = 0; j < solution[i].Count; j++)
 			{
-				foreach (var position in row)
+				RaycastHit hit;
+				var brickPosition = positions[i + bufferEdge][j + bufferEdge];
+				var rayOrigin = brickPosition + rayOriginOffset;
+						
+				if (Physics.Raycast(rayOrigin, rayDirection, out hit, maxRayDistance))
 				{
-					var delta = Mathf.Abs((previouslyHeldBrick.transform.position - position).magnitude);
-					if (delta < smallestDelta)
+					Brick brick = hit.collider.GetComponent<Brick>();
+					var isValidHit = brick != null;
+					if (isValidHit)
 					{
-						smallestDelta = delta;
-						closestPosition = position;
+						var brickColor = brick.color;
+						var solutionColor = solution[i][j];
+						if (brickColor != solutionColor)
+						{
+							win = false;
+							break;
+						}
+					}
+					else
+					{
+						win = false;
+						break;
 					}
 				}
+				else
+				{
+					win = false;
+					break;
+				}
 			}
-
-			previouslyHeldBrick.transform.position = closestPosition;
-			previouslyHeldBrick = null;
+					
+			if (!win)
+			{
+				break;
+			}
 		}
+
+		return win;
+	}
+
+	public Vector3 GetNearestPosition(Vector3 currentPosition)
+	{
+		Vector3 closestPosition = new();
+		float smallestDelta = Single.PositiveInfinity;
+		foreach (var row in positions)
+		{
+			foreach (var position in row)
+			{
+				var delta = Mathf.Abs((currentPosition - position).magnitude);
+				if (delta < smallestDelta)
+				{
+					smallestDelta = delta;
+					closestPosition = position;
+				}
+			}
+		}
+
+		return closestPosition;
 	}
 
 	private void SetupGame()
