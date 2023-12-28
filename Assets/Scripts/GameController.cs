@@ -34,6 +34,7 @@ public class GameController : MonoBehaviour
 	private Vector3 previousFingerPosition;
 	private Vector3 clickPointToBrickPositionDelta;
 
+	private float brickColliderExtentY;
 	
 	
 	private void Awake()
@@ -99,10 +100,8 @@ public class GameController : MonoBehaviour
 			
 				// Check for win condition
 				var win = true;
-				
 				int bufferEdge = bufferEdges ? 1 : 0;
-				float maxRayDistance = 0.05f;
-				// float maxRayDistance = brickPrefab.GetComponent<Collider>().bounds.extents.y;
+				float maxRayDistance = brickColliderExtentY;
 				var rayOriginOffset = new Vector3(0, maxRayDistance * 1.1f, 0);
 				var rayDirection = Vector3.down;
 				
@@ -240,5 +239,7 @@ public class GameController : MonoBehaviour
 		barrierRight.transform.position = new Vector3(halfWidth + halfBrick, 0, 0);
 		barrierBack.transform.position = new Vector3(0, 0, -halfHeight - halfBrick);
 		barrierForward.transform.position = new Vector3(0, 0, halfHeight + halfBrick);
-	}
+        
+		brickColliderExtentY = bricks[0].GetComponent<Collider>().bounds.extents.y;
+    }
 }
