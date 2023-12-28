@@ -36,17 +36,37 @@ public class GameController : MonoBehaviour
 	private Vector3 clickPointToBrickPositionDelta;
 
 	private float brickColliderExtentY;
-	public float movementPerFrameLimit = 0.1f;
+	private float movementPerFrameLimit;
 	
 	
 	private void Awake()
 	{
+		movementPerFrameLimit = brickSpacing * 1f;
 		SetupGame();
 	}
 
 	private void Update()
 	{
-		if (Input.GetMouseButton(0))
+		// Reintroduce onMouseDown + up
+		if (Input.GetMouseButtonDown(0))
+		{
+			var ray = gameCamera.ScreenPointToRay(Input.mousePosition);
+			RaycastHit hit;
+
+			if (Physics.Raycast(ray, out hit))
+			{
+				Brick brick = hit.collider.GetComponent<Brick>();
+				var isValidHit = hit.normal == Vector3.up && 
+				                 brick != null;
+				if (isValidHit)
+				{
+					currentlyHeldBrick = brick;
+					previousHitPoint = hit.point;
+				}
+			}
+		}
+		
+		if (Input.GetMouseButton(0) && currentlyHeldBrick != null)
 		{
 			var ray = gameCamera.ScreenPointToRay(Input.mousePosition);
 			RaycastHit hit;
@@ -54,65 +74,42 @@ public class GameController : MonoBehaviour
 			if (Physics.Raycast(ray, out hit))
 			{
 				Brick brick = hit.collider.GetComponent<Brick>();
-				var isValidHit = hit.normal == Vector3.up && brick != null;
-
+				var isValidHit = hit.normal == Vector3.up && brick == currentlyHeldBrick;
+				
 				if (isValidHit)
 				{
-					var isFirstFrameOfSwipe = previousHitPoint == Vector3.zero;
-					if (!isFirstFrameOfSwipe)
-					{
-						var sceneProjectedSwipe = hit.point - previousHitPoint;
-						var movement = Vector3.zero;
+					var sceneProjectedSwipe = hit.point - previousHitPoint;
+					var movement = Vector3.zero;
                         
-						if (Mathf.Abs(sceneProjectedSwipe.x) > Mathf.Abs(sceneProjectedSwipe.z))
-						{
-							movement.x = Mathf.Min(sceneProjectedSwipe.x, movementPerFrameLimit);
-						}
-						else
-						{
-							movement.z = Mathf.Min(sceneProjectedSwipe.z, movementPerFrameLimit);
-						}
-						
-						brick.TryToMove(movement);
-						
-						// Player has swiped far/fast enough to now be on a different brick than last frame.
-						if (currentlyHeldBrick != brick)
-						{
-							currentlyHeldBrick.SnapToNearestPosition();
-						}
-					}
-                    
-					currentlyHeldBrick = brick;
-					previousHitPoint = hit.point;
-				}
-				else // Not a valid brick hit.
-				{
-					foreach (var b in bricks)
+					if (Mathf.Abs(sceneProjectedSwipe.x) > Mathf.Abs(sceneProjectedSwipe.z))
 					{
-						b.SnapToNearestPosition();
+						movement.x = Mathf.Min(sceneProjectedSwipe.x, movementPerFrameLimit);
 					}
-					previousHitPoint = Vector3.zero;
-					currentlyHeldBrick = null;
+					else
+					{
+						movement.z = Mathf.Min(sceneProjectedSwipe.z, movementPerFrameLimit);
+					}
+						
+					currentlyHeldBrick.TryToMove(movement);
+					
+                    previousHitPoint = hit.point;
 				}
-			}
+            }
 		}
-		else // No player input
+	
+		if (Input.GetMouseButtonUp(0))
 		{
-			if (currentlyHeldBrick != null)
+			foreach (var b in bricks)
 			{
-				foreach (var b in bricks)
-				{
-                    b.SnapToNearestPosition();
-				}
+				b.SnapToNearestPosition();
+			}
 
-				previousHitPoint = Vector3.zero;
-
-				var win = CheckWinCondition();
-				
-				if (win)
-				{
-					Debug.Log("WWWWWIIIIIIIIIIIIIIIIIINNNNNNNNNNNNNNNNNN");
-				}
+			currentlyHeldBrick = null;
+			previousHitPoint = Vector3.zero;
+            
+			if (CheckWinCondition())
+			{
+				Debug.Log("WWWWWIIIIIIIIIIIIIIIIIINNNNNNNNNNNNNNNNNN");
 			}
 		}
 	}

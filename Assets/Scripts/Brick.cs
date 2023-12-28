@@ -13,7 +13,7 @@ public class Brick : MonoBehaviour
 	{
 		gameController = FindObjectOfType<GameController>();
 		//raycastDistance = transform.localScale.x / 2;
-		raycastDistance = GetComponent<Collider>().bounds.extents.x;
+		raycastDistance = GetComponent<Collider>().bounds.extents.x * 1.1f;
 	}
 
 
