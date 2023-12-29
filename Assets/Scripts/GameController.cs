@@ -8,46 +8,56 @@ using Random = UnityEngine.Random;
 public class GameController : MonoBehaviour
 {
 	[SerializeField] private Camera gameCamera;
+	[SerializeField] private GameUI gameUI;
+	[SerializeField] private GameObject boardGO;
+    
 	[SerializeField] private int solutionWidth = 3;
 	[SerializeField] private int solutionHeight = 3;
-	[SerializeField] private bool bufferEdges = true;
-	[SerializeField] private List<Color> colors = new();
-    
-	[SerializeField] private Brick brickPrefab;
 	[SerializeField] public float brickSpacing = 1.0f;
-
+	[SerializeField] private bool bufferEdges = true;
+    
 	[SerializeField] private GameObject barrierLeft;
 	[SerializeField] private GameObject barrierRight;
 	[SerializeField] private GameObject barrierForward;
 	[SerializeField] private GameObject barrierBack;
     
-	
-    
+	[SerializeField] private List<Color> colors = new();
+	[SerializeField] private Brick brickPrefab;
+
+
 	private List<List<Vector3>> positions = new();
 	private List<List<Color>> solution = new();
 	private List<Brick> bricks = new();
 
 	private Brick currentlyHeldBrick;
-	// private Brick previouslyHeldBrick;
-	private List<Brick> previouslyHeldBricks = new();
-	
 	private Vector3 previousHitPoint = Vector3.zero;
 	private Vector3 previousFingerPosition;
-	private Vector3 clickPointToBrickPositionDelta;
+	private Vector3 clickPositionToBrickPositionDelta;
 
 	private float brickColliderExtentY;
 	private float movementPerFrameLimit;
+    
+	private bool puzzleSolved = true;
+	private float gameTime;
+	
 	
 	
 	private void Awake()
 	{
-		movementPerFrameLimit = brickSpacing * 1f;
-		SetupGame();
+		gameUI = FindObjectOfType<GameUI>();
+		movementPerFrameLimit = brickSpacing * 0.1f;
+		boardGO.SetActive(false);
 	}
 
 	private void Update()
 	{
-		// Reintroduce onMouseDown + up
+		if (puzzleSolved)
+		{
+			return;
+		}
+
+		gameTime += Time.deltaTime;
+		
 		if (Input.GetMouseButtonDown(0))
 		{
 			var ray = gameCamera.ScreenPointToRay(Input.mousePosition);
@@ -106,15 +116,12 @@ public class GameController : MonoBehaviour
 
 			currentlyHeldBrick = null;
 			previousHitPoint = Vector3.zero;
-            
-			if (CheckWinCondition())
-			{
-				Debug.Log("WWWWWIIIIIIIIIIIIIIIIIINNNNNNNNNNNNNNNNNN");
-			}
+
+			CheckWinCondition();
 		}
 	}
 	
-	private bool CheckWinCondition()
+	private void CheckWinCondition()
 	{
 		var win = true;
 		int bufferEdge = bufferEdges ? 1 : 0;
@@ -163,7 +170,37 @@ public class GameController : MonoBehaviour
 			}
 		}
 
-		return win;
+		if (win)
+		{
+			puzzleSolved = true;
+			var newRecord = SetPlayerPrefs();
+			gameUI.OnPuzzleSolved(newRecord);
+		}
+	}
+	
+	public float GetGameTime()
+	{
+		return gameTime;
+	}
+	
+	private bool SetPlayerPrefs()
+	{
+		bool newRecord = false;
+		
+		if (!PlayerPrefs.HasKey("bestTime"))
+		{
+			PlayerPrefs.SetFloat("bestTime", gameTime);
+		}
+			
+		if (gameTime < PlayerPrefs.GetFloat("bestTime"))
+		{
+			PlayerPrefs.SetFloat("bestTime", gameTime);
+			newRecord = true;
+		}
+		
+		PlayerPrefs.Save();
+
+		return newRecord;
 	}
 
 	public Vector3 GetNearestPosition(Vector3 currentPosition)
@@ -188,9 +225,23 @@ public class GameController : MonoBehaviour
 
 	private void SetupGame()
 	{
+		if (bricks.Count > 0)
+		{
+			foreach (var brick in bricks)
+			{
+				Destroy(brick.gameObject);
+			}
+		}
+		
+		bricks.Clear();
+		positions.Clear();
+		solution.Clear();
 		var brickColors = new List<Color>();
 		
-		// Create solution data
+		boardGO.SetActive(true);
+		
+		
+		// Create a random solution. 
 		for (int i = 0; i < solutionHeight; i++)
 		{
 			var row = new List<Color>();
@@ -244,12 +295,20 @@ public class GameController : MonoBehaviour
 			positions.Add(line);
 		}
 		
-		// Place barriers
+		// Place barriers according to board size.
 		barrierLeft.transform.position = new Vector3(-halfWidth - halfBrick, 0, 0);
 		barrierRight.transform.position = new Vector3(halfWidth + halfBrick, 0, 0);
 		barrierBack.transform.position = new Vector3(0, 0, -halfHeight - halfBrick);
 		barrierForward.transform.position = new Vector3(0, 0, halfHeight + halfBrick);
         
 		brickColliderExtentY = bricks[0].GetComponent<Collider>().bounds.extents.y;
-    }
+
+		puzzleSolved = false;
+		gameTime = 0;
+	}
+
+	public void OnNewGamePressed()
+	{
+		SetupGame();
+	}
 }
