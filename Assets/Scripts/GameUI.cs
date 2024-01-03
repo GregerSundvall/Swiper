@@ -27,11 +27,10 @@ public class GameUI : MonoBehaviour
 	[SerializeField] private GameObject playButton;
 	[SerializeField] private GameObject newGameButton;
 	[SerializeField] private GameObject newRecord;
-	
-	[SerializeField] private TMP_Text levelText;
-	[FormerlySerializedAs("winTimeText")]
+
+	[SerializeField] private TMP_Text mainMenuLevelText;
+	[SerializeField] private TMP_Text inGameLevelText;
 	[SerializeField] private TMP_Text finishTimeText;
-	[FormerlySerializedAs("timerText")]
 	[SerializeField] private TMP_Text timeLeftText;
 	[SerializeField] private TMP_Text movesLeftText;
 	
@@ -57,7 +56,8 @@ public class GameUI : MonoBehaviour
 	private void Start()
 	{
 		gameController = FindObjectOfType<GameController>();
-		levelText.text = "Level " + gameController.GetCurrentLevel(); 
+		inGameLevelText.text = "Level " + gameController.GetPlayerLevel();
+		mainMenuLevelText.text = "You are at level " + gameController.GetPlayerLevel();
 	}
 
 	private void Update()

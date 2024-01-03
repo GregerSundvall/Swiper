@@ -156,7 +156,7 @@ public class GameController : MonoBehaviour
 		}
 	}
 
-	public int GetCurrentLevel() => playerLevel;
+	public int GetPlayerLevel() => playerLevel;
 
 	public float GetTimeLeft() => Mathf.Max(0, currentLevelSettings.timeLimit - gameTime);
 	
@@ -250,6 +250,7 @@ public class GameController : MonoBehaviour
 	}
 	
 	public float GetGameTime() => gameTime;
+	
 	public List<Color> GetColorPattern()
 	{
 		var pattern = new List<Color>();
