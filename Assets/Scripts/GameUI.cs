@@ -127,6 +127,7 @@ public class GameUI : MonoBehaviour
 		for (int i = 0; i < colors.Count; i++)
 		{
 			var color = colors[i];
+			Debug.Log(color);
 			color.a = 1;
 			solutionImages[i].color = color;
 		}

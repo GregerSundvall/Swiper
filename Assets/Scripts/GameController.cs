@@ -69,7 +69,7 @@ public class GameController : MonoBehaviour
 	{
 		InitLevelSettings();
 		playerLevel = PlayerPrefs.GetInt("level", 1);
-		currentLevelSettings = levelSettings[Mathf.Min(playerLevel, levelSettings.Count - 1)];
+		currentLevelSettings = levelSettings[Mathf.Min(playerLevel, levelSettings.Count - 1)-1];
 	}
 
 	private void Update()
@@ -250,7 +250,21 @@ public class GameController : MonoBehaviour
 	}
 	
 	public float GetGameTime() => gameTime;
-	public List<Color> GetColorPattern() => colorPalette;
+	public List<Color> GetColorPattern()
+	{
+		var pattern = new List<Color>();
+
+		for (int i = 0; i < targetPattern.Count; i++)
+		{
+			for (int j = 0; j < targetPattern[0].Count; j++)
+			{
+				pattern.Add(targetPattern[i][j]);
+			}
+		}
+		
+		return pattern;
+	}
+
 	public bool GetDidSetNewRecord() => didSetNewRecord;
 
 	public Vector3 GetNearestPosition(Vector3 currentPosition)
@@ -273,7 +287,7 @@ public class GameController : MonoBehaviour
 		return closestPosition;
 	}
 
-	private void SetupGame()
+	private void InitGame()
 	{
 		// Destroy and reset stuff from previous game.
 		if (bricks.Count > 0)
@@ -311,6 +325,7 @@ public class GameController : MonoBehaviour
 			}
 			targetPattern.Add(row);
 		}
+		
 		
 		// Nice to have variables
 		var boardHeight = currentLevelSettings.patternHeight + (currentLevelSettings.useBufferEdges ? 2 : 0);
@@ -371,6 +386,6 @@ public class GameController : MonoBehaviour
 
 	public void StartNewGame()
 	{
-		SetupGame();
+		InitGame();
 	}
 }
