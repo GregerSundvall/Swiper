@@ -7,112 +7,161 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
 
+public enum UiState
+{
+	Main,
+	Playing,
+	Pause,
+	Finish
+}
+
+
 public class GameUI : MonoBehaviour
 {
-	[SerializeField] private GameController gameController;
+	[SerializeField] private GameObject mainMenu;
+	[SerializeField] private GameObject inGameUi;
+	[SerializeField] private GameObject pauseMenu;
+	[SerializeField] private GameObject finishMenu;
+	
+	[SerializeField] private GameObject menuButton;
+	[SerializeField] private GameObject playButton;
+	[SerializeField] private GameObject newGameButton;
+	[SerializeField] private GameObject newRecord;
+	
+	[SerializeField] private TMP_Text levelText;
+	[FormerlySerializedAs("winTimeText")]
+	[SerializeField] private TMP_Text finishTimeText;
+	[FormerlySerializedAs("timerText")]
+	[SerializeField] private TMP_Text timeLeftText;
+	[SerializeField] private TMP_Text movesLeftText;
+	
 	
 	[SerializeField] private List<Image> solutionImages;
-	
-	[SerializeField] private GameObject messageGO;
-	[SerializeField] private GameObject menuButtonGO;
-	[SerializeField] private GameObject menuGO;
-	[SerializeField] private GameObject newGameGO;
-	[SerializeField] private GameObject solutionGO;
-	[SerializeField] private GameObject recordTimeGO;
-	[SerializeField] private GameObject timerGO;
-	
-	[SerializeField] private TMP_Text winTimeText;
-	[SerializeField] private TMP_Text timerText;
-    
-	
 
+	private UiState uiState;
+	private GameController gameController;
+
+	private float timeLeftTimer = 0;
+	private float timeLeftUpdateDelay = 0.2f;
+	
 
 	private void Awake()
 	{
-		messageGO.SetActive(false);
-		menuButtonGO.SetActive(false);
-		menuGO.SetActive(true);
-		solutionGO.SetActive(false);
-		timerGO.SetActive(false);
+		SetState(UiState.Main);
+		
+		menuButton.GetComponent<Button>().onClick.AddListener(OnMenuButtonPressed);
+		playButton.GetComponent<Button>().onClick.AddListener(OnPlayButtonPressed);
+		newGameButton.GetComponent<Button>().onClick.AddListener(OnPlayButtonPressed);
+	}
 
-		menuButtonGO.GetComponent<Button>().onClick.AddListener(OnMenuButtonPressed);
-		newGameGO.GetComponent<Button>().onClick.AddListener(OnNewGamePressed);
+	private void Start()
+	{
+		gameController = FindObjectOfType<GameController>();
+		levelText.text = "Level " + gameController.GetCurrentLevel(); 
 	}
 
 	private void Update()
 	{
-		// timerText.text = GetTimeString();
+		if (timeLeftTimer > timeLeftUpdateDelay)
+		{	
+			UpdateTimeLeftText();
+			timeLeftTimer = 0;
+		}
+		else
+		{
+			timeLeftTimer += Time.deltaTime;
+		}
 	}
 
-	private string GetTimeString()
+	private void UpdateTimeLeftText() => timeLeftText.text = TimeFloatToString(gameController.GetTimeLeft());
+
+	public void UpdateMovesLeftText(int moves) => movesLeftText.text = "Moves left: " + moves;
+
+	private void SetState(UiState state)
 	{
-		var time = gameController.GetGameTime();
+		mainMenu.SetActive(false);
+		inGameUi.SetActive(false);
+		pauseMenu.SetActive(false);
+		finishMenu.SetActive(false);
+		menuButton.SetActive(false);
 		
-		var hours = "";
-		var minutes = "";
-		var seconds = "";
-		var hundredths = "";
-		
-		if (time >= 3600)
+		switch (state)
 		{
-			var hoursInt = (int)(time / 3600);
-			time -= hoursInt * 3600;
-			hours = hoursInt + ":";
+			case UiState.Main:
+			{
+				mainMenu.SetActive(true);
+				break;
+			}
+			case UiState.Playing:
+			{
+				inGameUi.SetActive(true);
+				break;
+			}
+			case UiState.Pause:
+			{
+				pauseMenu.SetActive(true);
+				break;
+			}
+			case UiState.Finish:
+			{
+				finishMenu.SetActive(true);
+				finishTimeText.text = TimeFloatToString(gameController.GetGameTime(), true);
+				newRecord.SetActive(gameController.GetDidSetNewRecord());
+				break;
+			}
 		}
-
-		if (time >= 60)
-		{
-			var minutesInt = (int) (time / 60);
-			time -= minutesInt * 60;
-			minutes = minutesInt + ":";
-		}
-
-		var secondsInt = (int) time;
-		time -= secondsInt;
-		seconds = secondsInt + ":";
-        
-		var hundredthsInt = (int) (time * 100);
-		hundredths = hundredthsInt.ToString();
-
-		var timeString = hours + minutes + seconds + hundredths;
-		return timeString;
 	}
 	
-	
+	public void OnPuzzleSolved() => SetState(UiState.Finish);
 
 	private void OnMenuButtonPressed()
 	{
-		messageGO.SetActive(false);
-		menuButtonGO.SetActive(false);
-		menuGO.SetActive(true);
-		solutionGO.SetActive(false);
+		SetState(uiState == UiState.Playing ? UiState.Pause : UiState.Playing);
 	}
-	
-	public void ShowSolution(List<Color> colors)
+
+	private void OnPlayButtonPressed()
 	{
+		gameController.StartNewGame();
+		
+		var colors = gameController.GetColorPattern();
 		for (int i = 0; i < colors.Count; i++)
 		{
 			var color = colors[i];
 			color.a = 1;
 			solutionImages[i].color = color;
 		}
+		SetState(UiState.Playing);	
 	}
-	
-	private void OnNewGamePressed()
+
+	private string TimeFloatToString(float time, bool includeHundredths = false)
 	{
-		messageGO.SetActive(false);
-		menuButtonGO.SetActive(true);
-		menuGO.SetActive(false);
-		solutionGO.SetActive(true);
+		var hours = 0;
+		var minutes = 0;
+		var seconds = 0;
+		var hundredths = 0;
 		
-		gameController.OnNewGamePressed();
-	}
-	
-	public void OnPuzzleSolved(bool setNewRecord)
-	{
-		messageGO.SetActive(true);
-		timerGO.SetActive(false);
-		winTimeText.text = GetTimeString();
-		recordTimeGO.SetActive(setNewRecord);
+		if (time >= 3600)
+		{
+			hours = (int)(time / 3600);
+			time -= hours * 3600;
+		}
+
+		if (time >= 60)
+		{
+			minutes = (int) (time / 60);
+			time -= minutes * 60;
+		}
+
+		seconds = (int) time;
+		time -= seconds;
+        
+		hundredths = (int) (time * 100);
+
+		string timeString = (hours > 0 ? hours.ToString() : "") +
+		                    (minutes > 0 ? minutes.ToString() : "") + 
+		                    seconds +
+		                    (includeHundredths ? hundredths.ToString() : "");
+
+		return timeString;
 	}
 }
