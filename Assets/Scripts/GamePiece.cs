@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Brick : MonoBehaviour
+public class GamePiece : MonoBehaviour
 {
 	public Color color;
 	
@@ -30,10 +30,10 @@ public class Brick : MonoBehaviour
 			return true;
 		}
 
-		Brick otherBrick = hit.collider.GetComponent<Brick>();
-		if (otherBrick != null)
+		GamePiece otherPiece = hit.collider.GetComponent<GamePiece>();
+		if (otherPiece != null)
 		{
-			var couldMove = otherBrick.TryToMove(movement);
+			var couldMove = otherPiece.TryToMove(movement);
 			if (couldMove)
 			{
 				transform.position += movement;
