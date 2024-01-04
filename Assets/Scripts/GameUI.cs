@@ -155,10 +155,11 @@ public class GameUI : MonoBehaviour
 
 	private string TimeFloatToString(float time, bool includeHundredths = false)
 	{
-		var hours = 0;
-		var minutes = 0;
-		var seconds = 0;
-		var hundredths = 0;
+		int hours = 0;
+		int minutes = 0;
+		int seconds;
+		int hundredths;
+		string timeString;
 		
 		if (time >= 3600)
 		{
@@ -177,10 +178,22 @@ public class GameUI : MonoBehaviour
         
 		hundredths = (int) (time * 100);
 
-		string timeString = (hours > 0 ? hours.ToString() : "") +
-		                    (minutes > 0 ? minutes.ToString() : "") + 
-		                    seconds +
-		                    (includeHundredths ? hundredths.ToString() : "");
+
+		if (hours > 0)
+		{
+			timeString = hours + ":" + (minutes < 10 ? "0" + minutes : $"{minutes}");
+		}
+		else
+		{
+			timeString = minutes.ToString();
+		}
+
+		timeString += ":" + (seconds < 10 ? "0" + seconds : $"{seconds}");
+		
+		if (includeHundredths)
+		{
+			timeString += ":" + hundredths;
+		}
 
 		return timeString;
 	}
