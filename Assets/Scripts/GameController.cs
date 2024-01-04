@@ -251,19 +251,20 @@ public class GameController : MonoBehaviour
 	
 	public float GetGameTime() => gameTime;
 	
-	public List<Color> GetColorPattern()
+	public List<List<Color>> GetTargetPattern()
 	{
-		var pattern = new List<Color>();
-
-		for (int i = 0; i < targetPattern.Count; i++)
-		{
-			for (int j = 0; j < targetPattern[0].Count; j++)
-			{
-				pattern.Add(targetPattern[i][j]);
-			}
-		}
-		
-		return pattern;
+		return targetPattern;
+		// var pattern = new List<Color>();
+		//
+		// for (int i = 0; i < targetPattern.Count; i++)
+		// {
+		// 	for (int j = 0; j < targetPattern[0].Count; j++)
+		// 	{
+		// 		pattern.Add(targetPattern[i][j]);
+		// 	}
+		// }
+		//
+		// return pattern;
 	}
 
 	public bool GetDidSetNewRecord() => didSetNewRecord;

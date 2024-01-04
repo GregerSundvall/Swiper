@@ -33,10 +33,13 @@ public class GameUI : MonoBehaviour
 	[SerializeField] private TMP_Text finishTimeText;
 	[SerializeField] private TMP_Text timeLeftText;
 	[SerializeField] private TMP_Text movesLeftText;
-	
-	
-	[SerializeField] private List<Image> solutionImages;
 
+	[SerializeField] private GameObject targetPatternParent;
+	[SerializeField] private List<Image> targetPatternImages;
+
+	[SerializeField] private GameObject targetPatternPiecePrefab;
+	[SerializeField] private GameObject targetPatternRowPrefab;
+	
 	private UiState uiState;
 	private GameController gameController;
 
@@ -123,14 +126,30 @@ public class GameUI : MonoBehaviour
 	{
 		gameController.StartNewGame();
 		
-		var colors = gameController.GetColorPattern();
+		var colors = gameController.GetTargetPattern();
+		var parent = targetPatternParent;
+		var piecePrefab = targetPatternPiecePrefab;
+		var rowPrefab = targetPatternRowPrefab;
+
 		for (int i = 0; i < colors.Count; i++)
 		{
-			var color = colors[i];
-			Debug.Log(color);
-			color.a = 1;
-			solutionImages[i].color = color;
+			var row = Instantiate(rowPrefab, parent.transform);
+			for (int j = 0; j < colors[i].Count; j++)
+			{
+				var piece = Instantiate(piecePrefab, row.transform);
+				var color = colors[i][j];
+				color.a = 1;
+				piece.GetComponent<Image>().color = color;
+			}
 		}
+		
+		// for (int i = 0; i < colors.Count; i++)
+		// {
+		// 	var color = colors[i];
+		// 	Debug.Log(color);
+		// 	color.a = 1;
+		// 	targetPatternImages[i].color = color;
+		// }
 		SetState(UiState.Playing);	
 	}
 
