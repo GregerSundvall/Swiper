@@ -49,7 +49,8 @@ public class GameController : MonoBehaviour
 	private float pieceSpacing = 1.0f;
 	private float pieceColliderExtentY;
 	private float movementPerFrameLimit;
-
+	private bool distributeExtraPieceColorsEvenly = true;
+	
 	private int playerLevel = 1;
 	private LevelSettings currentLevelSettings;
 	private bool didSetNewRecord;
@@ -164,11 +165,11 @@ public class GameController : MonoBehaviour
 	private void InitLevelSettings()
 	{
 		
-		levelSettings.Add(new LevelSettings(3, 3, true, 300, 300));
-		levelSettings.Add(new LevelSettings(4, 4, true, 300, 300));
-		levelSettings.Add(new LevelSettings(5, 5, true, 300, 300));
-		levelSettings.Add(new LevelSettings(3, 3, false, 300, 300));
-		levelSettings.Add(new LevelSettings(4, 4, false, 300, 300));
+		levelSettings.Add(new LevelSettings(2, 2, true, 120, 50));
+		levelSettings.Add(new LevelSettings(3, 3, true, 180, 150));
+		levelSettings.Add(new LevelSettings(4, 4, true, 300, 200));
+		levelSettings.Add(new LevelSettings(3, 3, false, 300, 200));
+		levelSettings.Add(new LevelSettings(4, 4, false, 300, 200));
 	}
 
 	private void SetPlayerPrefsBestTime()
@@ -208,6 +209,7 @@ public class GameController : MonoBehaviour
 					if (isValidHit)
 					{
 						var brickColor = gamePiece.color;
+						Debug.Log("VALID HIT" + $"{brickColor}");
 						var solutionColor = targetPattern[i][j];
 						if (brickColor != solutionColor)
 						{
@@ -295,7 +297,36 @@ public class GameController : MonoBehaviour
 		possiblePositions.Clear();
 		targetPattern.Clear();
 
-		// Create a random solution. 
+
+		// Create board
+		var barrierWidth = 0.3f;
+		var barrierThickness = 0.1f;
+		var playAreaWidth = (currentLevelSettings.patternWidth + (currentLevelSettings.useBufferEdges ? 2 : 0)) * pieceSpacing;
+		var playAreaHeight = (currentLevelSettings.patternHeight + (currentLevelSettings.useBufferEdges ? 2 : 0)) * pieceSpacing;
+		var boardWidth = playAreaWidth + barrierWidth * 2;
+		var boardHeight = playAreaHeight + barrierWidth * 2;
+		
+		
+		var horizontalBarrierSize = new Vector3(boardWidth, barrierThickness, barrierWidth);
+		var verticalBarrierSize = new Vector3(barrierWidth, barrierThickness, boardHeight);
+		var topBarrierPosition = new Vector3(0, 0, (boardHeight - barrierWidth) * 0.5f);
+		var rightBarrierPosition = new Vector3((boardWidth - barrierWidth) * 0.5f, 0, 0);
+
+		var bottom = Instantiate(boardBottomPrefab);
+		bottom.transform.localScale = new Vector3(boardWidth, 0.1f, boardHeight);
+		
+		var barrierLeft = Instantiate(boardBarrierPrefab, -rightBarrierPosition, Quaternion.identity);
+		var barrierRight = Instantiate(boardBarrierPrefab, rightBarrierPosition, Quaternion.identity);
+		var barrierFar = Instantiate(boardBarrierPrefab, topBarrierPosition, Quaternion.identity);
+		var barrierNear = Instantiate(boardBarrierPrefab, -topBarrierPosition, Quaternion.identity);
+
+		barrierLeft.transform.localScale = verticalBarrierSize;
+		barrierRight.transform.localScale = verticalBarrierSize;
+		barrierFar.transform.localScale = horizontalBarrierSize;
+		barrierNear.transform.localScale = horizontalBarrierSize;
+		
+		
+		// Create a target pattern. 
 		var pieceColors = new List<Color>();
 		for (int i = 0; i < currentLevelSettings.patternHeight; i++)
 		{
@@ -317,53 +348,31 @@ public class GameController : MonoBehaviour
 			targetPattern.Add(row);
 		}
 		
+		if (currentLevelSettings.useBufferEdges)
+		{
+			// Fill up pieceColors list with additional "color instances".
+			var additionalBrickCount = boardHeight * boardWidth - pieceColors.Count - 1; // -1 because of the free slot needed to move anything
+			if (distributeExtraPieceColorsEvenly)
+			{
+				for (int i = 0; i < additionalBrickCount; i++)
+				{
+					pieceColors.Add(colorPalette[i % (colorPalette.Count - 1)]);
+				}
+			}
+			else
+			{
+				for (int i = 0; i < additionalBrickCount; i++)
+				{
+					pieceColors.Add(colorPalette[Random.Range(0, colorPalette.Count)]);
+				}
+			}
+		}
 		
-		// Misc variables
-		float barrierWidth = 0.3f;
-		float barrierThickness = 0.1f;
-		var playAreaWidth = (currentLevelSettings.patternWidth + (currentLevelSettings.useBufferEdges ? 2 : 0)) * pieceSpacing;
-		var playAreaHeight = (currentLevelSettings.patternHeight + (currentLevelSettings.useBufferEdges ? 2 : 0)) * pieceSpacing;
-		var boardWidth = playAreaWidth + barrierWidth * 2;
-		var boardHeight = playAreaHeight + barrierWidth * 2;
+
+		// Spawn game pieces. Color is randomized from brickColors list.
 		var halfPlayAreaWidth = playAreaWidth * 0.5f;
 		var halfPlayAreaHeight = playAreaHeight * 0.5f;
 		var halfPiece = pieceSpacing * 0.5f;
-		
-		
-		// Calculate board and barrier sizes, and spawn them.
-		var horizontalBarrierSize = new Vector3(boardWidth, barrierThickness, barrierWidth);
-		var verticalBarrierSize = new Vector3(barrierWidth, barrierThickness, boardHeight);
-		Vector3 topBarrierPosition = new Vector3(0, 0, (boardHeight - barrierWidth) * 0.5f);
-		Vector3 rightBarrierPosition = new Vector3((boardWidth - barrierWidth) * 0.5f, 0, 0);
-
-		var bottom = Instantiate(boardBottomPrefab);
-		bottom.transform.localScale = new Vector3(boardWidth, 0.1f, boardHeight);
-		
-		var barrierLeft = Instantiate(boardBarrierPrefab, -rightBarrierPosition, Quaternion.identity);
-		var barrierRight = Instantiate(boardBarrierPrefab, rightBarrierPosition, Quaternion.identity);
-		var barrierFar = Instantiate(boardBarrierPrefab, topBarrierPosition, Quaternion.identity);
-		var barrierNear = Instantiate(boardBarrierPrefab, -topBarrierPosition, Quaternion.identity);
-
-		barrierLeft.transform.localScale = verticalBarrierSize;
-		barrierRight.transform.localScale = verticalBarrierSize;
-		barrierFar.transform.localScale = horizontalBarrierSize;
-		barrierNear.transform.localScale = horizontalBarrierSize;
-		
-		
-		// Fill up brickColors list with additional random "color instances".
-		// Evenly distributed colors
-		var additionalBrickCount = boardHeight * boardWidth - pieceColors.Count - 1; // -1 because of the free slot needed to move anything
-		for (int i = 0; i < additionalBrickCount; i++)
-		{
-			pieceColors.Add(colorPalette[i % (colorPalette.Count - 1)]);
-		}
-		// // Random colors
-		// while (brickColors.Count < boardHeight * boardWidth -1) // -1 because of the free slot
-		// {
-		// 	brickColors.Add(colorPalette[Random.Range(0, colorPalette.Count)]);
-		// }
-
-		// Spawn bricks. Color is randomized from brickColors list.
 		for (float i = -halfPlayAreaHeight; i < halfPlayAreaHeight; i++)
 		{
 			var row = new List<Vector3>();
