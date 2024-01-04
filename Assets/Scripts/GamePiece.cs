@@ -22,12 +22,11 @@ public class Brick : MonoBehaviour
 
 	public bool TryToMove(Vector3 movement)
 	{
-		wasMoved = true;
-		
 		RaycastHit hit;
 		if (!Physics.Raycast(transform.position, movement, out hit, raycastDistance))
 		{
 			transform.position += movement;
+			wasMoved = true;
 			return true;
 		}
 
@@ -38,6 +37,7 @@ public class Brick : MonoBehaviour
 			if (couldMove)
 			{
 				transform.position += movement;
+				wasMoved = true;
 				return true;
 			}
 		}
