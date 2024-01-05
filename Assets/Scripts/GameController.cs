@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
@@ -28,7 +29,7 @@ public class GameController : MonoBehaviour
 	[SerializeField] private Camera gameCamera;
 	[SerializeField] private GameUI gameUI;
 	
-	[SerializeField] private GamePiece gamePiecePrefab;
+	[SerializeField] private GameObject gamePiecePrefab;
 	[SerializeField] private GameObject boardBarrierPrefab;
 	[SerializeField] private GameObject boardBottomPrefab;
 	
@@ -57,6 +58,7 @@ public class GameController : MonoBehaviour
 	private bool puzzleSolved = true;
 	private float gameTime;
 	private bool timeIsUp;
+	private bool noMovesLeft;
 	private int movesMade;
 
 	private void Awake()
@@ -69,9 +71,7 @@ public class GameController : MonoBehaviour
 	{
 		InitLevelSettings();
 		playerLevel = PlayerPrefs.GetInt("level", 1);
-		// The second -1 below is because starting level is 1.
-		currentLevelSettings = levelSettings[Mathf.Min(playerLevel, levelSettings.Count - 1) - 1]; 
-		pieceColliderExtentY = gamePiecePrefab.GetComponent<Collider>().bounds.extents.y;
+		pieceColliderExtentY = gamePiecePrefab.gameObject.GetComponent<Collider>().bounds.extents.y;
 	}
 
 	private void Update()
@@ -134,7 +134,7 @@ public class GameController : MonoBehaviour
 				}
 			}
 		}
-	
+
 		if (Input.GetMouseButtonUp(0))
 		{
 			var movedPiecesThisSwipe = 0;
@@ -149,6 +149,7 @@ public class GameController : MonoBehaviour
 			}
 
 			movesMade += movedPiecesThisSwipe;
+			noMovesLeft = currentLevelSettings.maxMoves - movesMade < 0;
 			gameUI.UpdateMovesLeftText(Mathf.Max(0, currentLevelSettings.maxMoves - movesMade));
 			
 			currentlyHeldGamePiece = null;
@@ -167,7 +168,7 @@ public class GameController : MonoBehaviour
 		
 		levelSettings.Add(new LevelSettings(2, 2, true, 120, 50));
 		levelSettings.Add(new LevelSettings(3, 3, true, 180, 150));
-		levelSettings.Add(new LevelSettings(4, 4, true, 300, 200));
+		levelSettings.Add(new LevelSettings(4, 4, true, 300, 400));
 		levelSettings.Add(new LevelSettings(3, 3, false, 300, 200));
 		levelSettings.Add(new LevelSettings(4, 4, false, 300, 200));
 	}
@@ -190,8 +191,8 @@ public class GameController : MonoBehaviour
 	{
 		var solved = true;
 		int bufferEdge = currentLevelSettings.useBufferEdges ? 1 : 0;
-		float maxRayDistance = pieceColliderExtentY;
-		var rayOriginOffset = new Vector3(0, maxRayDistance * 1.1f, 0);
+		float maxRayDistance = 0.1f;
+		var rayOriginOffset = new Vector3(0, maxRayDistance, 0);
 		var rayDirection = Vector3.down;
 				
 		for (int i = 0; i < targetPattern.Count; i++)
@@ -199,9 +200,8 @@ public class GameController : MonoBehaviour
 			for (int j = 0; j < targetPattern[i].Count; j++)
 			{
 				RaycastHit hit;
-				var brickPosition = possiblePositions[i + bufferEdge][j + bufferEdge];
-				var rayOrigin = brickPosition + rayOriginOffset;
-						
+				var piecePosition = possiblePositions[i + bufferEdge][j + bufferEdge];
+				var rayOrigin = piecePosition + rayOriginOffset;
 				if (Physics.Raycast(rayOrigin, rayDirection, out hit, maxRayDistance))
 				{
 					GamePiece gamePiece = hit.collider.GetComponent<GamePiece>();
@@ -209,7 +209,6 @@ public class GameController : MonoBehaviour
 					if (isValidHit)
 					{
 						var brickColor = gamePiece.color;
-						Debug.Log("VALID HIT" + $"{brickColor}");
 						var solutionColor = targetPattern[i][j];
 						if (brickColor != solutionColor)
 						{
@@ -239,11 +238,10 @@ public class GameController : MonoBehaviour
 		if (solved)
 		{
 			puzzleSolved = true;
-			Debug.Log("SOLVED!");
 			SetPlayerPrefsBestTime();
 
-			var shouldLevelUp = !timeIsUp && movesMade <= currentLevelSettings.maxMoves && 
-			                    playerLevel == PlayerPrefs.GetInt("level", 1);
+			var isOnHighestUnlockedLevel = playerLevel == PlayerPrefs.GetInt("level", 1);
+			var shouldLevelUp = !timeIsUp && !noMovesLeft && isOnHighestUnlockedLevel;
 			if (shouldLevelUp)
 			{
 				PlayerPrefs.SetInt("level", playerLevel + 1);
@@ -284,19 +282,21 @@ public class GameController : MonoBehaviour
 		// Destroy and reset stuff from previous game.
 		if (gamePieces.Count > 0)
 		{
-			foreach (var brick in gamePieces)
+			foreach (var piece in gamePieces)
 			{
-				Destroy(brick.gameObject);
+				Destroy(piece.gameObject);
 			}
 			gamePieces.Clear();
 		}
-
 		puzzleSolved = false;
 		gameTime = 0;
 		didSetNewRecord = false;
 		possiblePositions.Clear();
 		targetPattern.Clear();
-
+		
+		
+		// Set game level. The second -1 below is because starting level is 1.
+		currentLevelSettings = levelSettings[Mathf.Min(playerLevel, levelSettings.Count - 1) - 1]; 
 
 		// Create board
 		var barrierWidth = 0.3f;
@@ -348,9 +348,9 @@ public class GameController : MonoBehaviour
 			targetPattern.Add(row);
 		}
 		
+		// Depending on level settings, fill up pieceColors list with additional "color instances".
 		if (currentLevelSettings.useBufferEdges)
 		{
-			// Fill up pieceColors list with additional "color instances".
 			var additionalBrickCount = boardHeight * boardWidth - pieceColors.Count - 1; // -1 because of the free slot needed to move anything
 			if (distributeExtraPieceColorsEvenly)
 			{
@@ -369,22 +369,27 @@ public class GameController : MonoBehaviour
 		}
 		
 
-		// Spawn game pieces. Color is randomized from brickColors list.
+		// Spawn game pieces and also populate list of possible positions. Color is randomized from brickColors list.
 		var halfPlayAreaWidth = playAreaWidth * 0.5f;
 		var halfPlayAreaHeight = playAreaHeight * 0.5f;
 		var halfPiece = pieceSpacing * 0.5f;
-		for (float i = -halfPlayAreaHeight; i < halfPlayAreaHeight; i++)
+		var bufferEdges = currentLevelSettings.useBufferEdges ? 2 : 0;
+
+		for (int z = 0; z < currentLevelSettings.patternHeight + bufferEdges; z++)
 		{
 			var row = new List<Vector3>();
-			for (float j = -halfPlayAreaWidth; j < halfPlayAreaWidth; j++)
+			
+			for (int x = 0; x < currentLevelSettings.patternWidth + bufferEdges; x++)
 			{
-				Vector3 position = new Vector3(i + halfPiece, 0, j + halfPiece);
+				var xx = x * pieceSpacing - halfPlayAreaWidth + halfPiece;
+				var zz = -z * pieceSpacing + halfPlayAreaHeight - halfPiece;
+				var position = new Vector3(xx, 0, zz);
 				row.Add(position);
-
-				bool isLastPosition = (i + pieceSpacing >= halfPlayAreaHeight) && (j + pieceSpacing >= halfPlayAreaWidth);
-				if (!isLastPosition)
+				
+				bool notLastPosition = (z < currentLevelSettings.patternHeight + bufferEdges -1 || x < currentLevelSettings.patternWidth + bufferEdges -1);
+				if (notLastPosition)
 				{
-					var piece = Instantiate(gamePiecePrefab, position, Quaternion.identity);
+					var piece = Instantiate(gamePiecePrefab, position, Quaternion.identity).GetComponent<GamePiece>();
 					var colorIndex = Random.Range(0, pieceColors.Count);
 					var color = pieceColors[colorIndex];
 					piece.color = color;
@@ -393,9 +398,34 @@ public class GameController : MonoBehaviour
 					gamePieces.Add(piece);
 				}
 			}
-
+			
 			possiblePositions.Add(row);
 		}
+		
+		
+		// for (float i = halfPlayAreaHeight; i > -halfPlayAreaHeight; i--)
+		// {
+		// 	var row = new List<Vector3>();
+		// 	for (float j = -halfPlayAreaWidth; j < halfPlayAreaWidth; j++)
+		// 	{
+		// 		Vector3 position = new Vector3(j + halfPiece, 0, i - halfPiece);
+		// 		Debug.Log(position.x + " " + position.z);
+		// 		row.Add(position);
+		// 		bool isLastPosition = (i + pieceSpacing >= halfPlayAreaHeight) && (j + pieceSpacing >= halfPlayAreaWidth);
+		// 		if (!isLastPosition)
+		// 		{
+		// 			var piece = Instantiate(gamePiecePrefab, position, Quaternion.identity).GetComponent<GamePiece>();
+		// 			var colorIndex = Random.Range(0, pieceColors.Count);
+		// 			var color = pieceColors[colorIndex];
+		// 			piece.color = color;
+		// 			piece.GetComponentInChildren<MeshRenderer>().material.color = color;
+		// 			pieceColors.RemoveAt(colorIndex);
+		// 			gamePieces.Add(piece);
+		// 		}
+		// 	}
+		//
+		// 	possiblePositions.Add(row);
+		// }
 	}
 
 	public void StartNewGame()

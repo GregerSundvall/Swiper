@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
@@ -18,32 +19,37 @@ public enum UiState
 
 public class GameUI : MonoBehaviour
 {
-	[SerializeField] private GameObject mainMenu;
-	[SerializeField] private GameObject inGameUi;
-	[SerializeField] private GameObject pauseMenu;
-	[SerializeField] private GameObject finishMenu;
-	
-	[SerializeField] private GameObject menuButton;
+	//Main menu
+	[SerializeField] private GameObject mainMenuUiGroup;
 	[SerializeField] private GameObject playButton;
-	[SerializeField] private GameObject newGameButton;
-	[SerializeField] private GameObject newRecord;
-
 	[SerializeField] private TMP_Text mainMenuLevelText;
-	[SerializeField] private TMP_Text inGameLevelText;
-	[SerializeField] private TMP_Text finishTimeText;
+	
+	// In-game
+	[SerializeField] private GameObject inGameUiGroup;
+	[SerializeField] private GameObject menuButton;
 	[SerializeField] private TMP_Text timeLeftText;
 	[SerializeField] private TMP_Text movesLeftText;
-
-	[SerializeField] private GameObject targetPatternParent;
-	[SerializeField] private List<Image> targetPatternImages;
-
+	
+	// Pause menu
+	[SerializeField] private GameObject pauseMenuUiGroup;
+	[SerializeField] private GameObject newGameButton;
+	
+	// Finish screen
+	[SerializeField] private GameObject finishMenuUiGroup;
+	[SerializeField] private TMP_Text finishTimeText;
+	[SerializeField] private GameObject newRecord;
+	[SerializeField] private GameObject playNextLevel;
+	
+	// Init stuff
 	[SerializeField] private GameObject targetPatternPiecePrefab;
 	[SerializeField] private GameObject targetPatternRowPrefab;
+	[SerializeField] private GameObject targetPatternParent;
+	
 	
 	private UiState uiState;
 	private GameController gameController;
 
-	private float timeLeftTimer = 0;
+	private float timeLeftUpdateTimer = 0;
 	private float timeLeftUpdateDelay = 0.2f;
 	
 
@@ -54,72 +60,115 @@ public class GameUI : MonoBehaviour
 		menuButton.GetComponent<Button>().onClick.AddListener(OnMenuButtonPressed);
 		playButton.GetComponent<Button>().onClick.AddListener(OnPlayButtonPressed);
 		newGameButton.GetComponent<Button>().onClick.AddListener(OnPlayButtonPressed);
+		playNextLevel.GetComponent<Button>().onClick.AddListener(OnPlayButtonPressed);
 	}
 
 	private void Start()
 	{
 		gameController = FindObjectOfType<GameController>();
-		inGameLevelText.text = "Level " + gameController.GetPlayerLevel();
-		mainMenuLevelText.text = "You are at level " + gameController.GetPlayerLevel();
+		mainMenuLevelText.text = "Level " + gameController.GetPlayerLevel();
 	}
 
 	private void Update()
 	{
-		if (timeLeftTimer > timeLeftUpdateDelay)
+		if (timeLeftUpdateTimer > timeLeftUpdateDelay)
 		{	
 			UpdateTimeLeftText();
-			timeLeftTimer = 0;
+			timeLeftUpdateTimer = 0;
 		}
 		else
 		{
-			timeLeftTimer += Time.deltaTime;
+			timeLeftUpdateTimer += Time.deltaTime;
 		}
 	}
 
-	private void UpdateTimeLeftText() => timeLeftText.text = TimeFloatToString(gameController.GetTimeLeft());
+	private void UpdateTimeLeftText()
+	{
+		float timeLeft = gameController.GetTimeLeft();
+		if (timeLeft > 30)
+		{
+			timeLeftText.text = TimeFloatToString(timeLeft);
+		}
+		else if (timeLeft > 0)
+		{
+			timeLeftText.text = TimeFloatToString(timeLeft);
+			timeLeftText.color = Color.red;
+		}
+		else
+		{
+			timeLeftText.text = "Time's up!";
+		}
+	}
 
-	public void UpdateMovesLeftText(int moves) => movesLeftText.text = "Moves left: " + moves;
+	public void UpdateMovesLeftText(int moves)
+	{
+		if (moves > 20)
+		{
+			movesLeftText.text = "Moves left: " + moves;
+		}
+		else if (moves > 0)
+		{
+			movesLeftText.text = "Moves left: " + moves;
+			movesLeftText.color = Color.red;
+		}
+		else
+		{
+			movesLeftText.text = "No more moves!";
+		}
+	}
 
 	private void SetState(UiState state)
 	{
-		mainMenu.SetActive(false);
-		inGameUi.SetActive(false);
-		pauseMenu.SetActive(false);
-		finishMenu.SetActive(false);
+		mainMenuUiGroup.SetActive(false);
+		inGameUiGroup.SetActive(false);
+		pauseMenuUiGroup.SetActive(false);
+		finishMenuUiGroup.SetActive(false);
 		menuButton.SetActive(false);
 		
 		switch (state)
 		{
 			case UiState.Main:
 			{
-				mainMenu.SetActive(true);
+				mainMenuUiGroup.SetActive(true);
 				break;
 			}
 			case UiState.Playing:
 			{
-				inGameUi.SetActive(true);
+				inGameUiGroup.SetActive(true);
+				menuButton.SetActive(true);
 				break;
 			}
 			case UiState.Pause:
 			{
-				pauseMenu.SetActive(true);
+				pauseMenuUiGroup.SetActive(true);
+				menuButton.SetActive(true);
 				break;
 			}
 			case UiState.Finish:
 			{
-				finishMenu.SetActive(true);
+				finishMenuUiGroup.SetActive(true);
 				finishTimeText.text = TimeFloatToString(gameController.GetGameTime(), true);
 				newRecord.SetActive(gameController.GetDidSetNewRecord());
+				menuButton.SetActive(true);
 				break;
 			}
 		}
+		uiState = state;
 	}
 	
 	public void OnPuzzleSolved() => SetState(UiState.Finish);
 
 	private void OnMenuButtonPressed()
 	{
-		SetState(uiState == UiState.Playing ? UiState.Pause : UiState.Playing);
+		switch (uiState)
+		{
+			case UiState.Playing: SetState(UiState.Pause);
+				break;
+			case UiState.Pause: SetState(UiState.Playing);
+				break;
+			case UiState.Finish: SetState(UiState.Main);
+				break;
+		}
 	}
 
 	private void OnPlayButtonPressed()
@@ -143,13 +192,6 @@ public class GameUI : MonoBehaviour
 			}
 		}
 		
-		// for (int i = 0; i < colors.Count; i++)
-		// {
-		// 	var color = colors[i];
-		// 	Debug.Log(color);
-		// 	color.a = 1;
-		// 	targetPatternImages[i].color = color;
-		// }
 		SetState(UiState.Playing);	
 	}
 
