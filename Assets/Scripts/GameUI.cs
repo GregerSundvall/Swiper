@@ -71,18 +71,22 @@ public class GameUI : MonoBehaviour
 
 	private void Update()
 	{
-		if (timeLeftUpdateTimer > timeLeftUpdateDelay)
-		{	
-			UpdateTimeLeftText();
-			timeLeftUpdateTimer = 0;
-		}
-		else
-		{
-			timeLeftUpdateTimer += Time.deltaTime;
-		}
+		bool timeToUpdate = timeLeftUpdateTimer > timeLeftUpdateDelay;
+		Action uiTimerUpdate = timeToUpdate ? UpdateUiTimer : () => { timeLeftUpdateTimer += Time.deltaTime; };
+		uiTimerUpdate.Invoke();
+		
+		// if (timeToUpdate)
+		// {	
+		// 	UpdateUiTimer();
+		// 	timeLeftUpdateTimer = 0;
+		// }
+		// else
+		// {
+		// 	timeLeftUpdateTimer += Time.deltaTime;
+		// }
 	}
 
-	private void UpdateTimeLeftText()
+	private void UpdateUiTimer()
 	{
 		float timeLeft = gameController.GetTimeLeft();
 		if (timeLeft > 30)
@@ -174,8 +178,35 @@ public class GameUI : MonoBehaviour
 	private void OnPlayButtonPressed()
 	{
 		gameController.StartNewGame();
+		ClearTargetPattern();
+		PopulateTargetPattern();
+	}
+
+	private void ClearTargetPattern()
+	{
+		var oldPieces = targetPatternParent.GetComponentsInChildren<Image>();
+		if (oldPieces.Length > 0)
+		{
+			for (int i = oldPieces.Length - 1; i >= 0; i--)
+			{
+				Destroy(oldPieces[i].gameObject);
+			}
+		}
 		
+		var oldRows = targetPatternParent.GetComponentsInChildren<HorizontalLayoutGroup>();
+		if (oldRows.Length > 0)
+		{
+			for (int i = oldRows.Length - 1; i >= 0; i--)
+			{
+				Destroy(oldRows[i].gameObject);
+			}
+		}
+	}
+
+	private void PopulateTargetPattern()
+	{
 		var colors = gameController.GetTargetPattern();
+		Debug.Log(colors.Count);
 		var parent = targetPatternParent;
 		var piecePrefab = targetPatternPiecePrefab;
 		var rowPrefab = targetPatternRowPrefab;
@@ -192,7 +223,7 @@ public class GameUI : MonoBehaviour
 			}
 		}
 		
-		SetState(UiState.Playing);	
+		SetState(UiState.Playing);
 	}
 
 	private string TimeFloatToString(float time, bool includeHundredths = false)
