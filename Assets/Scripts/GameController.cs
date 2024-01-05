@@ -355,14 +355,13 @@ public class GameController : MonoBehaviour
 			int rowWidth = currentLevelSettings.patternWidth + edges;
 			int colHeight = currentLevelSettings.patternHeight + edges;
 			
-			Debug.Log(pieceColors.Count);
 			int additionalPieceCount = rowWidth * colHeight - pieceColors.Count - 1; // -1 because of the free slot needed to move anything
-			Debug.Log(additionalPieceCount);
 			if (distributeExtraPieceColorsEvenly)
 			{
-				for (int i = 0; i < additionalPieceCount; i++)
+				int startIndex = Random.Range(0, colorPalette.Count - 1);
+				for (int i = startIndex; i < additionalPieceCount + startIndex; i++)
 				{
-					pieceColors.Add(colorPalette[i % (colorPalette.Count - 1)]);
+					pieceColors.Add(colorPalette[i % (colorPalette.Count)]);
 				}
 			}
 			else
@@ -372,7 +371,6 @@ public class GameController : MonoBehaviour
 					pieceColors.Add(colorPalette[Random.Range(0, colorPalette.Count)]);
 				}
 			}
-			Debug.Log(pieceColors.Count);
 		}
 		
 
@@ -408,31 +406,6 @@ public class GameController : MonoBehaviour
 			
 			possiblePositions.Add(row);
 		}
-		
-		
-		// for (float i = halfPlayAreaHeight; i > -halfPlayAreaHeight; i--)
-		// {
-		// 	var row = new List<Vector3>();
-		// 	for (float j = -halfPlayAreaWidth; j < halfPlayAreaWidth; j++)
-		// 	{
-		// 		Vector3 position = new Vector3(j + halfPiece, 0, i - halfPiece);
-		// 		Debug.Log(position.x + " " + position.z);
-		// 		row.Add(position);
-		// 		bool isLastPosition = (i + pieceSpacing >= halfPlayAreaHeight) && (j + pieceSpacing >= halfPlayAreaWidth);
-		// 		if (!isLastPosition)
-		// 		{
-		// 			var piece = Instantiate(gamePiecePrefab, position, Quaternion.identity).GetComponent<GamePiece>();
-		// 			var colorIndex = Random.Range(0, pieceColors.Count);
-		// 			var color = pieceColors[colorIndex];
-		// 			piece.color = color;
-		// 			piece.GetComponentInChildren<MeshRenderer>().material.color = color;
-		// 			pieceColors.RemoveAt(colorIndex);
-		// 			gamePieces.Add(piece);
-		// 		}
-		// 	}
-		//
-		// 	possiblePositions.Add(row);
-		// }
 	}
 
 	public void StartNewGame()
