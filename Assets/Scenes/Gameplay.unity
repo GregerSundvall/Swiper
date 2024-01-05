@@ -370,7 +370,7 @@ GameObject:
   - component: {fileID: 183143302}
   - component: {fileID: 183143303}
   m_Layer: 5
-  m_Name: TimeText
+  m_Name: FinishTimeText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -387,13 +387,14 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1860353418}
   m_Father: {fileID: 765283470}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 127, y: -110.823746}
-  m_SizeDelta: {x: 254, y: 73.8825}
+  m_AnchoredPosition: {x: 127, y: -147.76498}
+  m_SizeDelta: {x: 254, y: 98.509995}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &183143302
 CanvasRenderer:
@@ -996,7 +997,7 @@ MonoBehaviour:
   goToMainMenuButton: {fileID: 1691525616}
   finishMenuUiGroup: {fileID: 765283469}
   finishTimeText: {fileID: 183143303}
-  newRecord: {fileID: 1860353417}
+  newBestTime: {fileID: 1860353417}
   playNextLevel: {fileID: 973215448}
   targetPatternPiecePrefab: {fileID: 8417110247182154019, guid: 10fd2d98e865a1744914366a1907716d, type: 3}
   targetPatternRowPrefab: {fileID: 2877641738505681301, guid: b0e0c3c01351f6c4f8c94456f2a49258, type: 3}
@@ -1181,7 +1182,6 @@ RectTransform:
   m_Children:
   - {fileID: 1948387161}
   - {fileID: 183143301}
-  - {fileID: 1860353418}
   - {fileID: 973215449}
   m_Father: {fileID: 840544711}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1203,7 +1203,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.74509805}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.9019608}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -2011,8 +2011,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 127, y: -260.82373}
-  m_SizeDelta: {x: 254, y: 78.3525}
+  m_AnchoredPosition: {x: 127, y: -248.50998}
+  m_SizeDelta: {x: 254, y: 102.979996}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &973215450
 MonoBehaviour:
@@ -2889,12 +2889,12 @@ GameObject:
   - component: {fileID: 1860353420}
   - component: {fileID: 1860353419}
   m_Layer: 5
-  m_Name: NewRecordText
+  m_Name: NewBestTimeText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1860353418
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2907,13 +2907,13 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 765283470}
+  m_Father: {fileID: 183143301}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 127, y: -221.64749}
-  m_SizeDelta: {x: 254, y: 73.8825}
-  m_Pivot: {x: 0.5, y: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 60, y: 20}
+  m_SizeDelta: {x: 50, y: 20}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1860353419
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2934,7 +2934,9 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: New record time!
+  m_text: 'Personal
+
+    best!'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -2961,8 +2963,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 20
-  m_fontSizeBase: 20
+  m_fontSize: 10
+  m_fontSizeBase: 10
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -3046,7 +3048,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 127, y: 0}
-  m_SizeDelta: {x: 254, y: 73.8825}
+  m_SizeDelta: {x: 254, y: 98.509995}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &1948387162
 MonoBehaviour:

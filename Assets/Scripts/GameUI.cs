@@ -13,7 +13,9 @@ public enum UiState
 	Main,
 	Playing,
 	Pause,
-	Finish
+	Solved,
+	OutOfTime,
+	OutOfMoves
 }
 
 
@@ -33,13 +35,12 @@ public class GameUI : MonoBehaviour
 	[SerializeField] private GameObject pauseMenuUiGroup;
 	[SerializeField] private GameObject backToGameButton;
 	[SerializeField] private GameObject newGameButton;
-	[FormerlySerializedAs("backToMainButton")]
 	[SerializeField] private GameObject goToMainMenuButton;
 	
 	// Finish screen
 	[SerializeField] private GameObject finishMenuUiGroup;
 	[SerializeField] private TMP_Text finishTimeText;
-	[SerializeField] private GameObject newRecord;
+	[SerializeField] private GameObject newBestTime;
 	[SerializeField] private GameObject playNextLevel;
 	
 	// Init stuff
@@ -78,21 +79,20 @@ public class GameUI : MonoBehaviour
 
 	private void Update()
 	{
-		bool timeToUpdate = timeLeftUpdateTimer > timeLeftUpdateDelay;
-		Action uiTimerUpdate = timeToUpdate ? UpdateUiTimer : () => { timeLeftUpdateTimer += Time.deltaTime; };
-		uiTimerUpdate.Invoke();
-		
-		// if (timeToUpdate)
-		// {	
-		// 	UpdateUiTimer();
-		// 	timeLeftUpdateTimer = 0;
-		// }
-		// else
-		// {
-		// 	timeLeftUpdateTimer += Time.deltaTime;
-		// }
+		if (uiState == UiState.Playing || uiState == UiState.Pause)
+		{
+			bool timeToUpdate = timeLeftUpdateTimer > timeLeftUpdateDelay;
+			Action uiTimerUpdate = timeToUpdate ? UpdateUiTimer : () => { timeLeftUpdateTimer += Time.deltaTime; };
+			uiTimerUpdate.Invoke();
+		}
 	}
 
+	public void OnPuzzleSolved() => SetState(UiState.Solved);
+
+	public void OnOutOfTime() => SetState(UiState.OutOfTime);
+	
+	public void OnOutOfMoves() => SetState(UiState.OutOfMoves);
+	
 	private void UpdateUiTimer()
 	{
 		float timeLeft = gameController.GetTimeLeft();
@@ -104,10 +104,6 @@ public class GameUI : MonoBehaviour
 		{
 			timeLeftText.text = TimeFloatToString(timeLeft);
 			timeLeftText.color = Color.red;
-		}
-		else
-		{
-			timeLeftText.text = "Time's up!";
 		}
 	}
 
@@ -122,20 +118,10 @@ public class GameUI : MonoBehaviour
 			movesLeftText.text = "Moves left: " + moves;
 			movesLeftText.color = Color.red;
 		}
-		else
-		{
-			movesLeftText.text = "No more moves!";
-		}
 	}
 
 	private void SetState(UiState state)
 	{
-		mainMenuUiGroup.SetActive(false);
-		inGameUiGroup.SetActive(false);
-		pauseMenuUiGroup.SetActive(false);
-		finishMenuUiGroup.SetActive(false);
-		menuButton.SetActive(false);
-		
 		switch (state)
 		{
 			case UiState.Main:
@@ -165,7 +151,7 @@ public class GameUI : MonoBehaviour
 				menuButton.SetActive(true);
 				break;
 			}
-			case UiState.Finish:
+			case UiState.Solved:
 			{
 				mainMenuUiGroup.SetActive(false);
 				inGameUiGroup.SetActive(false);
@@ -174,14 +160,36 @@ public class GameUI : MonoBehaviour
 				menuButton.SetActive(true);
 				
 				finishTimeText.text = TimeFloatToString(gameController.GetGameTime(), false);
-				newRecord.SetActive(gameController.GetDidSetNewRecord());
+				newBestTime.SetActive(gameController.GetDidSetNewRecord());
+				break;
+			}
+			case UiState.OutOfTime:
+			{
+				mainMenuUiGroup.SetActive(false);
+				inGameUiGroup.SetActive(true);
+				pauseMenuUiGroup.SetActive(false);
+				finishMenuUiGroup.SetActive(true);
+				menuButton.SetActive(true);
+				
+				finishTimeText.text = "But you ran out of time :-(";
+				newBestTime.SetActive(false);
+				break;
+			}
+			case UiState.OutOfMoves:
+			{
+				mainMenuUiGroup.SetActive(false);
+				inGameUiGroup.SetActive(true);
+				pauseMenuUiGroup.SetActive(false);
+				finishMenuUiGroup.SetActive(true);
+				menuButton.SetActive(true);
+				
+				finishTimeText.text = "But you have no more moves :-(";
+				newBestTime.SetActive(false);
 				break;
 			}
 		}
 		uiState = state;
 	}
-	
-	public void OnPuzzleSolved() => SetState(UiState.Finish);
 
 	private void OnMenuButtonPressed()
 	{
@@ -191,7 +199,7 @@ public class GameUI : MonoBehaviour
 				break;
 			case UiState.Pause: SetState(UiState.Playing);
 				break;
-			case UiState.Finish: SetState(UiState.Main);
+			case UiState.Solved: SetState(UiState.Main);
 				break;
 		}
 	}

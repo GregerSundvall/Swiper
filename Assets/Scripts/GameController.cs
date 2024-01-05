@@ -12,7 +12,7 @@ public struct LevelSettings
 	public readonly bool useBufferEdges;
 	public readonly float timeLimit;
 	public readonly int maxMoves;
-
+	
 	public LevelSettings(int patternWidth, int patternHeight, bool useBufferEdges, float timeLimit, int maxMoves) : this()
 	{
 		this.patternWidth = patternWidth;
@@ -60,14 +60,23 @@ public class GameController : MonoBehaviour
 	private int playerLevel = 1;
 	private LevelSettings currentLevelSettings;
 	private bool didSetNewRecord;
-	private bool puzzleSolved = true;
+	// private bool puzzleSolved = true;
 	private float gameTime;
-	private bool timeIsUp;
-	private bool noMovesLeft;
+	private bool gameOver = true;
+	private bool outOfTime;
+	private bool outOfMoves;
 	private int movesMade;
+	
+	// public getters
+	public float GetGameTime() => gameTime;
+	public List<List<Color>> GetTargetPattern() => targetPattern;
+	public bool GetDidSetNewRecord() => didSetNewRecord;
+	public void StartNewGame() => InitGame();
+	public int GetPlayerLevel() => playerLevel;
+	public float GetTimeLeft() => Mathf.Max(0, currentLevelSettings.timeLimit - gameTime);
+	
+	
 
-	
-	
 	private void Awake()
 	{
 		gameUI = FindObjectOfType<GameUI>();
@@ -80,19 +89,28 @@ public class GameController : MonoBehaviour
 		playerLevel = PlayerPrefs.GetInt("level", 1);
 		pieceColliderExtentY = gamePiecePrefab.gameObject.GetComponent<Collider>().bounds.extents.y;
 	}
-	
+
 	private void Update()
 	{
-		if (puzzleSolved)
-		{
-			return;
-		}
-
+		if (gameOver) return;
+		
 		gameTime += Time.deltaTime;
 		if (gameTime > currentLevelSettings.timeLimit)
 		{
-			timeIsUp = true;
+			gameOver = true;
+			outOfTime = true;
+			gameUI.OnOutOfTime();
+			return;
 		}
+
+		if (movesMade > currentLevelSettings.maxMoves)
+		{
+			gameOver = true;
+			outOfMoves = true;
+			gameUI.OnOutOfMoves();
+			return;
+		}
+
 		
 		if (Input.GetMouseButtonDown(0))
 		{
@@ -156,7 +174,7 @@ public class GameController : MonoBehaviour
 			}
 
 			movesMade += movedPiecesThisSwipe;
-			noMovesLeft = currentLevelSettings.maxMoves - movesMade < 0;
+			outOfMoves = currentLevelSettings.maxMoves - movesMade < 0;
 			UpdateMovesLeftUI();
 			
 			currentlyHeldGamePiece = null;
@@ -165,21 +183,9 @@ public class GameController : MonoBehaviour
 			CheckWinCondition();
 		}
 	}
-
-	public float GetGameTime() => gameTime;
-
-	public List<List<Color>> GetTargetPattern() => targetPattern;
-
-	public bool GetDidSetNewRecord() => didSetNewRecord;
-
-	public void StartNewGame() => InitGame();
-
-	public int GetPlayerLevel() => playerLevel;
-
-	public float GetTimeLeft() => Mathf.Max(0, currentLevelSettings.timeLimit - gameTime);
-
+	
 	private void UpdateMovesLeftUI() => gameUI.SetMovesLeftText(Mathf.Max(0, currentLevelSettings.maxMoves - movesMade));
-
+	
 	private void InitLevelSettings()
 	{
 		
@@ -189,7 +195,7 @@ public class GameController : MonoBehaviour
 		levelSettings.Add(new LevelSettings(3, 3, false, 300, 200));
 		levelSettings.Add(new LevelSettings(4, 4, false, 300, 200));
 	}
-
+	
 	private void SetPlayerPrefsBestTime()
 	{
 		float finishTime = gameTime;
@@ -204,7 +210,7 @@ public class GameController : MonoBehaviour
 
 		PlayerPrefs.Save();
 	}
-
+	
 	private void CheckWinCondition()
 	{
 		var solved = true;
@@ -255,12 +261,12 @@ public class GameController : MonoBehaviour
 
 		if (solved)
 		{
-			puzzleSolved = true;
+			// puzzleSolved = true;
 			SetPlayerPrefsBestTime();
 
 			int playerPrefsLevel = PlayerPrefs.GetInt("level", 1);
 			bool isOnHighestUnlockedLevel = playerLevel == playerPrefsLevel;
-			bool shouldLevelUp = !timeIsUp && !noMovesLeft && isOnHighestUnlockedLevel;
+			bool shouldLevelUp = !outOfTime && !outOfMoves && isOnHighestUnlockedLevel;
 			if (shouldLevelUp)
 			{
 				playerLevel++;
@@ -305,10 +311,11 @@ public class GameController : MonoBehaviour
 		possiblePositions.Clear();
 		targetPattern.Clear();
 		didSetNewRecord = false;
-		puzzleSolved = false;
+		// puzzleSolved = false;
 		gameTime = 0;
-		timeIsUp = false;
-		noMovesLeft = false;
+		outOfTime = false;
+		outOfMoves = false;
+		gameOver = false;
 		movesMade = 0;
 		
 		// Set game level. The second -1 below is because starting level is 1.
