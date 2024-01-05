@@ -351,21 +351,28 @@ public class GameController : MonoBehaviour
 		// Depending on level settings, fill up pieceColors list with additional "color instances".
 		if (currentLevelSettings.useBufferEdges)
 		{
-			var additionalBrickCount = boardHeight * boardWidth - pieceColors.Count - 1; // -1 because of the free slot needed to move anything
+			int edges = currentLevelSettings.useBufferEdges ? 2 : 0;
+			int rowWidth = currentLevelSettings.patternWidth + edges;
+			int colHeight = currentLevelSettings.patternHeight + edges;
+			
+			Debug.Log(pieceColors.Count);
+			int additionalPieceCount = rowWidth * colHeight - pieceColors.Count - 1; // -1 because of the free slot needed to move anything
+			Debug.Log(additionalPieceCount);
 			if (distributeExtraPieceColorsEvenly)
 			{
-				for (int i = 0; i < additionalBrickCount; i++)
+				for (int i = 0; i < additionalPieceCount; i++)
 				{
 					pieceColors.Add(colorPalette[i % (colorPalette.Count - 1)]);
 				}
 			}
 			else
 			{
-				for (int i = 0; i < additionalBrickCount; i++)
+				for (int i = 0; i < additionalPieceCount; i++)
 				{
 					pieceColors.Add(colorPalette[Random.Range(0, colorPalette.Count)]);
 				}
 			}
+			Debug.Log(pieceColors.Count);
 		}
 		
 
