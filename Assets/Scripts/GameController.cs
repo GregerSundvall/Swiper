@@ -61,6 +61,8 @@ public class GameController : MonoBehaviour
 	private bool noMovesLeft;
 	private int movesMade;
 
+	
+	
 	private void Awake()
 	{
 		gameUI = FindObjectOfType<GameUI>();
@@ -73,7 +75,7 @@ public class GameController : MonoBehaviour
 		playerLevel = PlayerPrefs.GetInt("level", 1);
 		pieceColliderExtentY = gamePiecePrefab.gameObject.GetComponent<Collider>().bounds.extents.y;
 	}
-
+	
 	private void Update()
 	{
 		if (puzzleSolved)
@@ -159,10 +161,19 @@ public class GameController : MonoBehaviour
 		}
 	}
 
+	public float GetGameTime() => gameTime;
+
+	public List<List<Color>> GetTargetPattern() => targetPattern;
+
+	public bool GetDidSetNewRecord() => didSetNewRecord;
+
+	public void StartNewGame() => InitGame();
+
 	public int GetPlayerLevel() => playerLevel;
 
 	public float GetTimeLeft() => Mathf.Max(0, currentLevelSettings.timeLimit - gameTime);
-	
+
+
 	private void InitLevelSettings()
 	{
 		
@@ -186,6 +197,7 @@ public class GameController : MonoBehaviour
 
 		PlayerPrefs.Save();
 	}
+
 
 	private void CheckWinCondition()
 	{
@@ -240,22 +252,19 @@ public class GameController : MonoBehaviour
 			puzzleSolved = true;
 			SetPlayerPrefsBestTime();
 
-			var isOnHighestUnlockedLevel = playerLevel == PlayerPrefs.GetInt("level", 1);
-			var shouldLevelUp = !timeIsUp && !noMovesLeft && isOnHighestUnlockedLevel;
+			int playerPrefsLevel = PlayerPrefs.GetInt("level", 1);
+			bool isOnHighestUnlockedLevel = playerLevel == playerPrefsLevel;
+			bool shouldLevelUp = !timeIsUp && !noMovesLeft && isOnHighestUnlockedLevel;
 			if (shouldLevelUp)
 			{
-				PlayerPrefs.SetInt("level", playerLevel + 1);
+				playerLevel++;
+				PlayerPrefs.SetInt("level", playerLevel);
+				PlayerPrefs.Save();
 			}
 			
 			gameUI.OnPuzzleSolved();
 		}
 	}
-	
-	public float GetGameTime() => gameTime;
-	
-	public List<List<Color>> GetTargetPattern() => targetPattern;
-
-	public bool GetDidSetNewRecord() => didSetNewRecord;
 
 	public Vector3 GetNearestPosition(Vector3 currentPosition)
 	{
@@ -406,10 +415,5 @@ public class GameController : MonoBehaviour
 			
 			possiblePositions.Add(row);
 		}
-	}
-
-	public void StartNewGame()
-	{
-		InitGame();
 	}
 }
