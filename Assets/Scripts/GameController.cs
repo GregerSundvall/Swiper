@@ -157,7 +157,7 @@ public class GameController : MonoBehaviour
 
 			movesMade += movedPiecesThisSwipe;
 			noMovesLeft = currentLevelSettings.maxMoves - movesMade < 0;
-			gameUI.UpdateMovesLeftText(Mathf.Max(0, currentLevelSettings.maxMoves - movesMade));
+			UpdateMovesLeftUI();
 			
 			currentlyHeldGamePiece = null;
 			previousHitPoint = Vector3.zero;
@@ -178,6 +178,7 @@ public class GameController : MonoBehaviour
 
 	public float GetTimeLeft() => Mathf.Max(0, currentLevelSettings.timeLimit - gameTime);
 
+	private void UpdateMovesLeftUI() => gameUI.SetMovesLeftText(Mathf.Max(0, currentLevelSettings.maxMoves - movesMade));
 
 	private void InitLevelSettings()
 	{
@@ -191,18 +192,18 @@ public class GameController : MonoBehaviour
 
 	private void SetPlayerPrefsBestTime()
 	{
+		float finishTime = gameTime;
 		string key = "bestTime" + playerLevel;
 		float storedValue = PlayerPrefs.GetFloat(key, Single.MaxValue);
 			
-		if (gameTime < storedValue)
+		if (finishTime < storedValue)
 		{
-			PlayerPrefs.SetFloat(key, gameTime);
+			PlayerPrefs.SetFloat(key, finishTime);
 			didSetNewRecord = true;
 		}
 
 		PlayerPrefs.Save();
 	}
-
 
 	private void CheckWinCondition()
 	{
@@ -265,9 +266,8 @@ public class GameController : MonoBehaviour
 				playerLevel++;
 				PlayerPrefs.SetInt("level", playerLevel);
 				PlayerPrefs.Save();
+				gameUI.OnPuzzleSolved();
 			}
-			
-			gameUI.OnPuzzleSolved();
 		}
 	}
 
@@ -302,15 +302,18 @@ public class GameController : MonoBehaviour
 			}
 			gamePieces.Clear();
 		}
-		puzzleSolved = false;
-		gameTime = 0;
-		didSetNewRecord = false;
 		possiblePositions.Clear();
 		targetPattern.Clear();
-		
+		didSetNewRecord = false;
+		puzzleSolved = false;
+		gameTime = 0;
+		timeIsUp = false;
+		noMovesLeft = false;
+		movesMade = 0;
 		
 		// Set game level. The second -1 below is because starting level is 1.
 		currentLevelSettings = levelSettings[Mathf.Min(playerLevel, levelSettings.Count - 1) - 1]; 
+		gameUI.SetMovesLeftText(Mathf.Max(0, currentLevelSettings.maxMoves - movesMade));
 
 		// Setup board bottom
 		var barrierWidth = 0.3f;
