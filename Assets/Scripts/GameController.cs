@@ -35,6 +35,11 @@ public class GameController : MonoBehaviour
 	
 	[SerializeField] private List<Color> colorPalette = new();
 
+	private GameObject boardBottom;
+	private GameObject barrierLeft;
+	private GameObject barrierRight;
+	private GameObject barrierFar;
+	private GameObject barrierNear;
 	
 	private List<LevelSettings> levelSettings = new();
 	
@@ -307,7 +312,7 @@ public class GameController : MonoBehaviour
 		// Set game level. The second -1 below is because starting level is 1.
 		currentLevelSettings = levelSettings[Mathf.Min(playerLevel, levelSettings.Count - 1) - 1]; 
 
-		// Create board
+		// Setup board bottom
 		var barrierWidth = 0.3f;
 		var barrierThickness = 0.1f;
 		var playAreaWidth = (currentLevelSettings.patternWidth + (currentLevelSettings.useBufferEdges ? 2 : 0)) * pieceSpacing;
@@ -315,20 +320,34 @@ public class GameController : MonoBehaviour
 		var boardWidth = playAreaWidth + barrierWidth * 2;
 		var boardHeight = playAreaHeight + barrierWidth * 2;
 		
+		if (boardBottom == null)
+			boardBottom = Instantiate(boardBottomPrefab);
 		
+		boardBottom.transform.localScale = new Vector3(boardWidth, 0.1f, boardHeight);
+		
+		// Setup barriers
 		var horizontalBarrierSize = new Vector3(boardWidth, barrierThickness, barrierWidth);
 		var verticalBarrierSize = new Vector3(barrierWidth, barrierThickness, boardHeight);
 		var topBarrierPosition = new Vector3(0, 0, (boardHeight - barrierWidth) * 0.5f);
 		var rightBarrierPosition = new Vector3((boardWidth - barrierWidth) * 0.5f, 0, 0);
 
-		var bottom = Instantiate(boardBottomPrefab);
-		bottom.transform.localScale = new Vector3(boardWidth, 0.1f, boardHeight);
+		if (barrierLeft == null)
+			barrierLeft = Instantiate(boardBarrierPrefab);
 		
-		var barrierLeft = Instantiate(boardBarrierPrefab, -rightBarrierPosition, Quaternion.identity);
-		var barrierRight = Instantiate(boardBarrierPrefab, rightBarrierPosition, Quaternion.identity);
-		var barrierFar = Instantiate(boardBarrierPrefab, topBarrierPosition, Quaternion.identity);
-		var barrierNear = Instantiate(boardBarrierPrefab, -topBarrierPosition, Quaternion.identity);
-
+		if (barrierRight == null)
+			barrierRight = Instantiate(boardBarrierPrefab);
+		
+		if (barrierFar == null)
+			barrierFar = Instantiate(boardBarrierPrefab);
+		
+		if (barrierNear == null)
+			barrierNear = Instantiate(boardBarrierPrefab);
+		
+		barrierLeft.transform.position = -rightBarrierPosition;
+		barrierRight.transform.position = rightBarrierPosition;
+		barrierFar.transform.position = topBarrierPosition;
+		barrierNear.transform.position = -topBarrierPosition;
+		
 		barrierLeft.transform.localScale = verticalBarrierSize;
 		barrierRight.transform.localScale = verticalBarrierSize;
 		barrierFar.transform.localScale = horizontalBarrierSize;
