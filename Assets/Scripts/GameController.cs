@@ -59,7 +59,7 @@ public class GameController : MonoBehaviour
 	
 	private int playerLevel = 1;
 	private LevelSettings currentLevelSettings;
-	private bool didSetNewRecord;
+	private bool newBestTime;
 	// private bool puzzleSolved = true;
 	private float gameTime;
 	private bool gameOver = true;
@@ -70,12 +70,13 @@ public class GameController : MonoBehaviour
 	// public getters
 	public float GetGameTime() => gameTime;
 	public List<List<Color>> GetTargetPattern() => targetPattern;
-	public bool GetDidSetNewRecord() => didSetNewRecord;
+	public bool GetDidSetNewRecord() => newBestTime;
 	public void StartNewGame() => InitGame();
 	public int GetPlayerLevel() => playerLevel;
 	public float GetTimeLeft() => Mathf.Max(0, currentLevelSettings.timeLimit - gameTime);
-	
-	
+	public bool GetUseBufferEdges() => currentLevelSettings.useBufferEdges;
+
+
 
 	private void Awake()
 	{
@@ -183,19 +184,19 @@ public class GameController : MonoBehaviour
 			CheckWinCondition();
 		}
 	}
-	
+
 	private void UpdateMovesLeftUI() => gameUI.SetMovesLeftText(Mathf.Max(0, currentLevelSettings.maxMoves - movesMade));
-	
+
 	private void InitLevelSettings()
 	{
 		
-		levelSettings.Add(new LevelSettings(2, 2, true, 120, 50));
+		levelSettings.Add(new LevelSettings(2, 2, true, 120, 60));
 		levelSettings.Add(new LevelSettings(3, 3, true, 180, 150));
-		levelSettings.Add(new LevelSettings(4, 4, true, 300, 400));
 		levelSettings.Add(new LevelSettings(3, 3, false, 300, 200));
+		levelSettings.Add(new LevelSettings(4, 4, true, 300, 400));
 		levelSettings.Add(new LevelSettings(4, 4, false, 300, 200));
 	}
-	
+
 	private void SetPlayerPrefsBestTime()
 	{
 		float finishTime = gameTime;
@@ -205,12 +206,12 @@ public class GameController : MonoBehaviour
 		if (finishTime < storedValue)
 		{
 			PlayerPrefs.SetFloat(key, finishTime);
-			didSetNewRecord = true;
+			newBestTime = true;
 		}
 
 		PlayerPrefs.Save();
 	}
-	
+
 	private void CheckWinCondition()
 	{
 		var solved = true;
@@ -261,7 +262,7 @@ public class GameController : MonoBehaviour
 
 		if (solved)
 		{
-			// puzzleSolved = true;
+			gameOver = true;
 			SetPlayerPrefsBestTime();
 
 			int playerPrefsLevel = PlayerPrefs.GetInt("level", 1);
@@ -275,6 +276,13 @@ public class GameController : MonoBehaviour
 				gameUI.OnPuzzleSolved();
 			}
 		}
+	}
+
+	public void ResetProgress()
+	{
+		PlayerPrefs.DeleteAll();
+		PlayerPrefs.Save();
+		playerLevel = 1;
 	}
 
 	public Vector3 GetNearestPosition(Vector3 currentPosition)
@@ -299,7 +307,7 @@ public class GameController : MonoBehaviour
 
 	private void InitGame()
 	{
-		// Destroy and reset stuff from previous game.
+		// Reset
 		if (gamePieces.Count > 0)
 		{
 			foreach (var piece in gamePieces)
@@ -310,14 +318,13 @@ public class GameController : MonoBehaviour
 		}
 		possiblePositions.Clear();
 		targetPattern.Clear();
-		didSetNewRecord = false;
-		// puzzleSolved = false;
+		newBestTime = false;
 		gameTime = 0;
 		outOfTime = false;
 		outOfMoves = false;
 		gameOver = false;
 		movesMade = 0;
-		
+
 		// Set game level. The second -1 below is because starting level is 1.
 		currentLevelSettings = levelSettings[Mathf.Min(playerLevel, levelSettings.Count - 1) - 1]; 
 		gameUI.SetMovesLeftText(Mathf.Max(0, currentLevelSettings.maxMoves - movesMade));
@@ -445,4 +452,5 @@ public class GameController : MonoBehaviour
 			possiblePositions.Add(row);
 		}
 	}
+
 }

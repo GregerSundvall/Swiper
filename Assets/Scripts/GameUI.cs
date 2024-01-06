@@ -25,6 +25,7 @@ public class GameUI : MonoBehaviour
 	[SerializeField] private GameObject mainMenuUiGroup;
 	[SerializeField] private GameObject playButton;
 	[SerializeField] private TMP_Text mainMenuLevelText;
+	[SerializeField] private GameObject resetButton;
 	
 	// In-game
 	[SerializeField] private GameObject inGameUiGroup;
@@ -39,9 +40,10 @@ public class GameUI : MonoBehaviour
 	
 	// Finish screen
 	[SerializeField] private GameObject finishMenuUiGroup;
-	[SerializeField] private TMP_Text finishTimeText;
+	[SerializeField] private TMP_Text finishUpperText;
+	[SerializeField] private TMP_Text finishMiddleText;
 	[SerializeField] private GameObject newBestTime;
-	[SerializeField] private GameObject playNextLevel;
+	[SerializeField] private TMP_Text finishLowerText;
 	
 	// Init stuff
 	[SerializeField] private GameObject targetPatternPiecePrefab;
@@ -60,14 +62,13 @@ public class GameUI : MonoBehaviour
 
 	private void Awake()
 	{
-		SetState(UiState.Main);
-		
 		menuButton.GetComponent<Button>().onClick.AddListener(OnMenuButtonPressed);
 		playButton.GetComponent<Button>().onClick.AddListener(OnPlayButtonPressed);
 		newGameButton.GetComponent<Button>().onClick.AddListener(OnPlayButtonPressed);
-		playNextLevel.GetComponent<Button>().onClick.AddListener(OnPlayButtonPressed);
+		finishLowerText.GetComponent<Button>().onClick.AddListener(OnPlayButtonPressed);
 		backToGameButton.GetComponent<Button>().onClick.AddListener(OnBackToGameButtonPressed);
 		goToMainMenuButton.GetComponent<Button>().onClick.AddListener(OnGoToMainMenuButtonPressed);
+		resetButton.GetComponent<Button>().onClick.AddListener(OnResetProgressButtonPressed);
 	}
 
 	private void Start()
@@ -75,6 +76,7 @@ public class GameUI : MonoBehaviour
 		gameController = FindObjectOfType<GameController>();
 		mainMenuLevelText.text = "Level " + gameController.GetPlayerLevel();
 		textColor = timeLeftText.color;
+		SetState(UiState.Main);
 	}
 
 	private void Update()
@@ -126,11 +128,14 @@ public class GameUI : MonoBehaviour
 		{
 			case UiState.Main:
 			{
+				Debug.Log("Set ui state main");
 				mainMenuUiGroup.SetActive(true);
 				inGameUiGroup.SetActive(false);
 				pauseMenuUiGroup.SetActive(false);
 				finishMenuUiGroup.SetActive(false);
 				menuButton.SetActive(false);
+				
+				mainMenuLevelText.text = "Level " + gameController.GetPlayerLevel();
 				break;
 			}
 			case UiState.Playing:
@@ -158,9 +163,11 @@ public class GameUI : MonoBehaviour
 				pauseMenuUiGroup.SetActive(false);
 				finishMenuUiGroup.SetActive(true);
 				menuButton.SetActive(true);
-				
-				finishTimeText.text = TimeFloatToString(gameController.GetGameTime(), false);
+
+				finishUpperText.text = "Well done!";
+				finishMiddleText.text = TimeFloatToString(gameController.GetGameTime(), false);
 				newBestTime.SetActive(gameController.GetDidSetNewRecord());
+				finishLowerText.text = "Play next level!";
 				break;
 			}
 			case UiState.OutOfTime:
@@ -170,8 +177,10 @@ public class GameUI : MonoBehaviour
 				pauseMenuUiGroup.SetActive(false);
 				finishMenuUiGroup.SetActive(true);
 				menuButton.SetActive(true);
-				
-				finishTimeText.text = "But you ran out of time :-(";
+
+				finishUpperText.text = "Great work!";
+				finishMiddleText.text = "But you ran \nout of time...";
+				finishLowerText.text = "Try again!";
 				newBestTime.SetActive(false);
 				break;
 			}
@@ -183,8 +192,10 @@ public class GameUI : MonoBehaviour
 				finishMenuUiGroup.SetActive(true);
 				menuButton.SetActive(true);
 				
-				finishTimeText.text = "But you have no more moves :-(";
+				finishUpperText.text = "Great work!";
+				finishMiddleText.text = "But you have \nno more moves...";
 				newBestTime.SetActive(false);
+				finishLowerText.text = "Try again!";
 				break;
 			}
 		}
@@ -201,6 +212,10 @@ public class GameUI : MonoBehaviour
 				break;
 			case UiState.Solved: SetState(UiState.Main);
 				break;
+			case UiState.OutOfTime: SetState(UiState.Main);
+				break;
+			case UiState.OutOfMoves: SetState(UiState.Main);
+				break;
 		}
 	}
 
@@ -213,6 +228,12 @@ public class GameUI : MonoBehaviour
 		timeLeftText.color = textColor;
 		movesLeftText.text = "";
 		movesLeftText.color = textColor;
+	}
+
+	private void OnResetProgressButtonPressed()
+	{
+		gameController.ResetProgress();
+		mainMenuLevelText.text = "Level " + gameController.GetPlayerLevel();
 	}
 
 	private void OnGoToMainMenuButtonPressed() => SetState(UiState.Main);
@@ -246,6 +267,7 @@ public class GameUI : MonoBehaviour
 		var parent = targetPatternParent;
 		var piecePrefab = targetPatternPiecePrefab;
 		var rowPrefab = targetPatternRowPrefab;
+		bool fillEmptySlot = !gameController.GetUseBufferEdges();
 
 		for (int i = 0; i < colors.Count; i++)
 		{
@@ -255,6 +277,12 @@ public class GameUI : MonoBehaviour
 				var piece = Instantiate(piecePrefab, row.transform);
 				var color = colors[i][j];
 				color.a = 1;
+				piece.GetComponent<Image>().color = color;
+			}
+			if (fillEmptySlot && i == colors.Count -1)
+			{
+				var piece = Instantiate(piecePrefab, row.transform);
+				var color = new Color(0, 0, 0, 0);
 				piece.GetComponent<Image>().color = color;
 			}
 		}
