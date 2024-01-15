@@ -1,6 +1,4 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class GamePiece : MonoBehaviour
@@ -10,6 +8,8 @@ public class GamePiece : MonoBehaviour
 	private GameController gameController;
 	private float raycastDistance;
 	private bool wasMoved;
+	private bool hasNewPosition;
+	private Tuple<int, int> previousSlot;
 	
 	
 	private void Awake()
@@ -19,14 +19,21 @@ public class GamePiece : MonoBehaviour
 	}
 
 	public bool WasMoved() => wasMoved;
+	public bool HasNewPosition() => hasNewPosition;
 
 	public bool TryToMove(Vector3 movement)
 	{
+		if (wasMoved == false)
+		{
+			wasMoved = true;
+			hasNewPosition = false;
+			previousSlot = gameController.GetBoardSlot(transform.position);
+		}
+		
 		RaycastHit hit;
 		if (!Physics.Raycast(transform.position, movement, out hit, raycastDistance))
 		{
 			transform.position += movement;
-			wasMoved = true;
 			return true;
 		}
 
@@ -37,7 +44,6 @@ public class GamePiece : MonoBehaviour
 			if (couldMove)
 			{
 				transform.position += movement;
-				wasMoved = true;
 				return true;
 			}
 		}
@@ -46,7 +52,11 @@ public class GamePiece : MonoBehaviour
 	
 	public void SnapToNearestPosition()
 	{
+		var nearestPosition = gameController.GetNearestPosition(transform.position);
+		transform.position = nearestPosition;
+		var currentSlot = gameController.GetBoardSlot(nearestPosition);
+		hasNewPosition = !previousSlot.Equals(currentSlot);
+		previousSlot = null;
 		wasMoved = false;
-		transform.position = gameController.GetNearestPosition(transform.position);
 	}
 }

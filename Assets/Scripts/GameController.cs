@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 public struct LevelSettings
@@ -60,7 +58,6 @@ public class GameController : MonoBehaviour
 	private int playerLevel = 1;
 	private LevelSettings currentLevelSettings;
 	private bool newBestTime;
-	// private bool puzzleSolved = true;
 	private float gameTime;
 	private bool gameOver = true;
 	private bool outOfTime;
@@ -76,8 +73,7 @@ public class GameController : MonoBehaviour
 	public float GetTimeLeft() => Mathf.Max(0, currentLevelSettings.timeLimit - gameTime);
 	public bool GetUseBufferEdges() => currentLevelSettings.useBufferEdges;
 
-
-
+	
 	private void Awake()
 	{
 		gameUI = FindObjectOfType<GameUI>();
@@ -161,7 +157,7 @@ public class GameController : MonoBehaviour
 			}
 		}
 
-		if (Input.GetMouseButtonUp(0))
+		if (Input.GetMouseButtonUp(0) && currentlyHeldGamePiece != null)
 		{
 			var movedPiecesThisSwipe = 0;
 			
@@ -169,8 +165,11 @@ public class GameController : MonoBehaviour
 			{
 				if (b.WasMoved())
 				{
-					movedPiecesThisSwipe++;
 					b.SnapToNearestPosition();
+					if (b.HasNewPosition())
+					{
+						movedPiecesThisSwipe++;
+					}
 				}
 			}
 
@@ -285,6 +284,27 @@ public class GameController : MonoBehaviour
 		playerLevel = 1;
 	}
 
+	public Tuple<int, int> GetBoardSlot(Vector3 position)
+	{
+		var slot = Tuple.Create(0, 0);
+		float smallestDelta = Single.PositiveInfinity;
+		
+		for (int row = 0; row < possiblePositions.Count; row++)
+		{
+			for (int column = 0; column < possiblePositions[0].Count; column++)
+			{
+				var delta = Mathf.Abs((position - possiblePositions[row][column]).magnitude);
+				if (delta < smallestDelta)
+				{
+					smallestDelta = delta;
+					slot = Tuple.Create(row, column);
+				}
+			}
+		}
+
+		return slot;
+	}
+	
 	public Vector3 GetNearestPosition(Vector3 currentPosition)
 	{
 		Vector3 closestPosition = new();
